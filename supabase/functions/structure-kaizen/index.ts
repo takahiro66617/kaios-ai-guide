@@ -38,10 +38,19 @@ serve(async (req) => {
           {
             role: "system",
             content: `あなたは企業の改善活動を支援するAIアシスタントです。
-ユーザーが入力した自由記述テキスト（現場の気づき、改善の取り組み、業務で変えたこと）を分析し、構造化フォーマットに整理してください。
+ユーザーが入力した改善情報（問題の内容、発生場所、影響、頻度、原因仮説、改善案の方向、期待効果など）を分析し、構造化された改善シートのドラフトを生成してください。
 
-重要：related_departments（関連部署）は、この改善が直接的・間接的に効果を及ぼす可能性がある全ての部署を推定して含めてください。
-例えば「営業資料をWikiにまとめた」なら、営業部だけでなく、マーケティング部、カスタマーサポート部なども関連する可能性があります。`,
+入力には以下の情報が含まれます：
+【必須】問題の内容、発生場所、影響、頻度、原因仮説、改善案の方向、期待効果
+【任意】関係部署、数値根拠
+
+あなたの役割：
+1. 入力情報を元に、簡潔で明確なタイトルを生成
+2. 課題・原因・解決策・効果を構造化して整理（入力情報を補足・明確化）
+3. 主管部門と関連部署を推定（ユーザー入力の関係部署も考慮）
+4. カテゴリ・再現性・タグを適切に付与
+
+重要：related_departments（関連部署）は、この改善が直接的・間接的に効果を及ぼす可能性がある全ての部署を推定して含めてください。ユーザーが明示した関係部署がある場合は必ず含めてください。`,
           },
           {
             role: "user",
@@ -58,11 +67,11 @@ serve(async (req) => {
                 type: "object",
                 properties: {
                   title: { type: "string", description: "改善案の簡潔なタイトル（20文字以内）" },
-                  problem: { type: "string", description: "課題：現状の問題点を簡潔に記述" },
-                  cause: { type: "string", description: "原因：問題が起きている根本的な原因" },
-                  solution: { type: "string", description: "解決策：実施した、または提案する具体的な改善内容" },
-                  effect: { type: "string", description: "効果：期待される（または実際の）改善効果" },
-                  department: { type: "string", description: "主管部門：最も関連する部門名（例：営業部、製造部）" },
+                  problem: { type: "string", description: "課題：現状の問題点を簡潔に記述（入力の問題の内容・影響を統合）" },
+                  cause: { type: "string", description: "原因：問題が起きている根本的な原因（入力の原因仮説を深堀り）" },
+                  solution: { type: "string", description: "解決策：具体的な改善内容（入力の改善案の方向を具体化）" },
+                  effect: { type: "string", description: "効果：期待される改善効果（入力の期待効果を構造化）" },
+                  department: { type: "string", description: "主管部門：最も関連する部門名（入力の発生場所から推定）" },
                   category: {
                     type: "string",
                     enum: ["業務効率化", "DX推進", "標準化", "可視化", "コスト削減", "品質向上", "その他"],
@@ -80,7 +89,7 @@ serve(async (req) => {
                   related_departments: {
                     type: "array",
                     items: { type: "string" },
-                    description: "この改善が波及効果を持つ可能性のある関連部署の一覧（主管部門以外も含む）。例：営業部、カスタマーサポート部、経営企画部",
+                    description: "この改善が波及効果を持つ可能性のある関連部署の一覧（主管部門以外も含む）",
                   },
                 },
                 required: ["title", "problem", "cause", "solution", "effect", "department", "category", "reproducibility", "tags", "related_departments"],
@@ -113,7 +122,6 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const structured = JSON.parse(toolCall.function.arguments);
@@ -122,7 +130,6 @@ serve(async (req) => {
       });
     }
 
-    // Fallback: try to parse content as JSON
     const content = data.choices?.[0]?.message?.content;
     if (content) {
       try {
@@ -132,8 +139,7 @@ serve(async (req) => {
         });
       } catch {
         return new Response(JSON.stringify({ error: "AIの応答を解析できませんでした", raw: content }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
