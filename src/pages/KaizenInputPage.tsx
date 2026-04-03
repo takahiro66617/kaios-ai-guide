@@ -251,23 +251,30 @@ const KaizenInputPage = () => {
             {recentItems.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
-                {recentItems.map((item) => (
-                  <Card key={item.id} className="hover:shadow-sm transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                            <span>{item.department}</span>
-                            <span>{item.createdAt}</span>
+                {recentItems.map((item) => {
+                  const author = getPersonById(item.authorId);
+                  return (
+                    <Card key={item.id} className="hover:shadow-sm transition-shadow">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                              <span>{item.department}</span>
+                              {author && <span className="text-primary">{author.name}</span>}
+                              <span>{item.createdAt}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-primary">{calculateImpactScore(item)}pt</span>
+                            <Badge variant="secondary" className="text-xs">{item.status}</Badge>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs">{item.status}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </>
