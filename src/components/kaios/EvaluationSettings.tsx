@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 import {
   Dialog,
   DialogContent,
