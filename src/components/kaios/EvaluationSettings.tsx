@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useKaios } from "@/contexts/KaiosContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
