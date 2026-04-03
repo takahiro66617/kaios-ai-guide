@@ -302,7 +302,9 @@ const EvaluationSettings = () => {
                             Speed: {entry.speed}% / Cross-functional: {entry.cross}%
                           </p>
                         </div>
-                      ))}
+                      )) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">変更履歴はまだありません</p>
+                      )}
                     </div>
                     <DialogFooter>
                       <DialogClose asChild>
