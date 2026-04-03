@@ -11,6 +11,7 @@ export interface Person {
   role: string;
   yearsAtCompany: number;
   avatarInitial: string;
+  isActive: boolean;
 }
 
 export interface KaizenItem {
@@ -36,18 +37,16 @@ export interface EvalSettings {
   crossFunctional: number;
 }
 
-// ===== People Data =====
-
-export const PEOPLE: Person[] = [
-  { id: "p1", name: "佐藤 美咲", department: "カスタマーサポート部", role: "チームリーダー", yearsAtCompany: 3, avatarInitial: "佐" },
-  { id: "p2", name: "田中 花子", department: "情報システム部", role: "エンジニア", yearsAtCompany: 5, avatarInitial: "田" },
-  { id: "p3", name: "鈴木 次郎", department: "営業部", role: "マネージャー", yearsAtCompany: 7, avatarInitial: "鈴" },
-  { id: "p4", name: "高橋 美咲", department: "経営企画部", role: "主任", yearsAtCompany: 4, avatarInitial: "高" },
-  { id: "p5", name: "山本 健一", department: "製造部", role: "現場リーダー", yearsAtCompany: 10, avatarInitial: "山" },
-  { id: "p6", name: "中村 さくら", department: "経理部", role: "担当", yearsAtCompany: 2, avatarInitial: "中" },
-  { id: "p7", name: "小林 大輔", department: "物流部", role: "係長", yearsAtCompany: 6, avatarInitial: "小" },
-  { id: "p8", name: "加藤 裕子", department: "総務部", role: "担当", yearsAtCompany: 3, avatarInitial: "加" },
-];
+// Helper to map DB row to Person
+const mapRowToPerson = (row: any): Person => ({
+  id: row.id,
+  name: row.name,
+  department: row.department,
+  role: row.role || "",
+  yearsAtCompany: row.years_at_company || 1,
+  avatarInitial: row.avatar_initial || row.name?.charAt(0) || "?",
+  isActive: row.is_active ?? true,
+});
 
 // Helper to map DB row to KaizenItem
 const mapRowToItem = (row: any): KaizenItem => ({
@@ -83,6 +82,10 @@ interface KaiosContextType {
   getKaizenByDepartment: (dept: string) => KaizenItem[];
   calculateImpactScore: (item: KaizenItem) => number;
   refreshItems: () => Promise<void>;
+  refreshPeople: () => Promise<void>;
+  addPerson: (person: Omit<Person, "id" | "isActive">) => Promise<Person | null>;
+  updatePerson: (id: string, updates: Partial<Person>) => Promise<void>;
+  deletePerson: (id: string) => Promise<void>;
 }
 
 const KaiosContext = createContext<KaiosContextType | null>(null);
@@ -94,14 +97,34 @@ export const useKaios = () => {
 };
 
 export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
+  const [people, setPeople] = useState<Person[]>([]);
   const [kaizenItems, setKaizenItems] = useState<KaizenItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [evalSettings, setEvalSettings] = useState<EvalSettings>({ speed: 70, crossFunctional: 85 });
 
+  const refreshPeople = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("people")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Failed to load people:", error);
+        return;
+      }
+      if (data) {
+        setPeople((data as any[]).map(mapRowToPerson));
+      }
+    } catch (e) {
+      console.error("Error loading people:", e);
+    }
+  }, []);
+
   const refreshItems = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("kaizen_items" as any)
+        .from("kaizen_items")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -121,8 +144,8 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    refreshItems();
-  }, [refreshItems]);
+    Promise.all([refreshPeople(), refreshItems()]);
+  }, [refreshPeople, refreshItems]);
 
   const calculateImpactScore = useCallback((item: KaizenItem) => {
     const baseScore = 50;
@@ -143,15 +166,12 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
       status: "構造化済み",
     };
     newItem.impactScore = calculateImpactScore(newItem);
-
-    // Optimistically add to state
     setKaizenItems(prev => [newItem, ...prev]);
 
-    // Persist to DB async
     (async () => {
       try {
         const { data, error } = await supabase
-          .from("kaizen_items" as any)
+          .from("kaizen_items")
           .insert({
             title: item.title,
             problem: item.problem,
@@ -166,7 +186,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
             author_id: item.authorId,
             adopted_by: [],
             impact_score: newItem.impactScore,
-          } as any)
+          })
           .select()
           .single();
 
@@ -175,7 +195,6 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
           toast.error("データベースへの保存に失敗しました");
           return;
         }
-
         if (data) {
           const dbItem = mapRowToItem(data);
           setKaizenItems(prev => prev.map(i => i.id === tempId ? dbItem : i));
@@ -190,14 +209,12 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateKaizenStatus = useCallback((id: string, status: KaizenItem["status"]) => {
     setKaizenItems(prev => prev.map(item => item.id === id ? { ...item, status } : item));
-
     (async () => {
       try {
         const { error } = await supabase
-          .from("kaizen_items" as any)
-          .update({ status } as any)
+          .from("kaizen_items")
+          .update({ status })
           .eq("id", id);
-
         if (error) console.error("Failed to update status:", error);
       } catch (e) {
         console.error("Error updating status:", e);
@@ -205,13 +222,88 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     })();
   }, []);
 
-  const getPersonById = useCallback((id: string) => PEOPLE.find(p => p.id === id), []);
+  const addPerson = useCallback(async (person: Omit<Person, "id" | "isActive">): Promise<Person | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("people")
+        .insert({
+          name: person.name,
+          department: person.department,
+          role: person.role,
+          years_at_company: person.yearsAtCompany,
+          avatar_initial: person.avatarInitial,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Failed to add person:", error);
+        toast.error("提案者の追加に失敗しました");
+        return null;
+      }
+      if (data) {
+        const newPerson = mapRowToPerson(data);
+        setPeople(prev => [...prev, newPerson]);
+        return newPerson;
+      }
+      return null;
+    } catch (e) {
+      console.error("Error adding person:", e);
+      return null;
+    }
+  }, []);
+
+  const updatePerson = useCallback(async (id: string, updates: Partial<Person>) => {
+    try {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.department !== undefined) dbUpdates.department = updates.department;
+      if (updates.role !== undefined) dbUpdates.role = updates.role;
+      if (updates.yearsAtCompany !== undefined) dbUpdates.years_at_company = updates.yearsAtCompany;
+      if (updates.avatarInitial !== undefined) dbUpdates.avatar_initial = updates.avatarInitial;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+
+      const { error } = await supabase
+        .from("people")
+        .update(dbUpdates)
+        .eq("id", id);
+
+      if (error) {
+        console.error("Failed to update person:", error);
+        toast.error("提案者の更新に失敗しました");
+        return;
+      }
+      setPeople(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    } catch (e) {
+      console.error("Error updating person:", e);
+    }
+  }, []);
+
+  const deletePerson = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("people")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Failed to delete person:", error);
+        toast.error("提案者の削除に失敗しました");
+        return;
+      }
+      setPeople(prev => prev.filter(p => p.id !== id));
+    } catch (e) {
+      console.error("Error deleting person:", e);
+    }
+  }, []);
+
+  const getPersonById = useCallback((id: string) => people.find(p => p.id === id), [people]);
   const getKaizenByPerson = useCallback((personId: string) => kaizenItems.filter(k => k.authorId === personId), [kaizenItems]);
   const getKaizenByDepartment = useCallback((dept: string) => kaizenItems.filter(k => k.department === dept), [kaizenItems]);
 
   return (
     <KaiosContext.Provider value={{
-      people: PEOPLE,
+      people,
       kaizenItems,
       isLoading,
       evalSettings,
@@ -223,6 +315,10 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
       getKaizenByDepartment,
       calculateImpactScore,
       refreshItems,
+      refreshPeople,
+      addPerson,
+      updatePerson,
+      deletePerson,
     }}>
       {children}
     </KaiosContext.Provider>

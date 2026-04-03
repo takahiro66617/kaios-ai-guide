@@ -10,6 +10,7 @@ import KaizenInputPage from "@/pages/KaizenInputPage";
 import SimilarCasesPage from "@/pages/SimilarCasesPage";
 import ImpactPage from "@/pages/ImpactPage";
 import SettingsPage from "@/pages/SettingsPage";
+import PeopleManagementPage from "@/pages/PeopleManagementPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route element={<KaiosLayout />}>
               <Route path="/" element={<EvaluationSettings />} />
+              <Route path="/people" element={<PeopleManagementPage />} />
               <Route path="/kaizen-input" element={<KaizenInputPage />} />
               <Route path="/similar-cases" element={<SimilarCasesPage />} />
               <Route path="/impact" element={<ImpactPage />} />

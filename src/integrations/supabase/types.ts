@@ -71,6 +71,42 @@ export type Database = {
         }
         Relationships: []
       }
+      people: {
+        Row: {
+          avatar_initial: string
+          created_at: string
+          department: string
+          id: string
+          is_active: boolean
+          name: string
+          role: string
+          updated_at: string
+          years_at_company: number
+        }
+        Insert: {
+          avatar_initial?: string
+          created_at?: string
+          department: string
+          id?: string
+          is_active?: boolean
+          name: string
+          role?: string
+          updated_at?: string
+          years_at_company?: number
+        }
+        Update: {
+          avatar_initial?: string
+          created_at?: string
+          department?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          role?: string
+          updated_at?: string
+          years_at_company?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
