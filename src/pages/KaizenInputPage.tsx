@@ -480,7 +480,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
         {/* Recent items - visible on step 1 and 4 */}
         {(step === 1 || step === 4) && recentItems.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-3" data-tour="recent-items">
             <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
             {recentItems.map((item) => {
               const author = getPersonById(item.authorId);
