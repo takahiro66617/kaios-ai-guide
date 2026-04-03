@@ -1,14 +1,16 @@
-import { Sparkles, BookmarkPlus, ChevronRight, Clock, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Sparkles, BookmarkPlus, ChevronRight, ArrowRight, TrendingUp, MapPin, BarChart3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useKaios, type Person } from "@/contexts/KaiosContext";
+import { useKaios, type Person, type KaizenItem } from "@/contexts/KaiosContext";
 import { useNavigate } from "react-router-dom";
 
 interface PersonDetailModalProps {
@@ -17,148 +19,238 @@ interface PersonDetailModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const KaizenDetailView = ({ item, onBack }: { item: KaizenItem; onBack: () => void }) => {
+  const { getPersonById } = useKaios();
+  const author = getPersonById(item.authorId);
+
+  const scoreColor = item.impactScore >= 70 ? "text-kaios-success" : item.impactScore >= 40 ? "text-primary" : "text-muted-foreground";
+  const scoreBg = item.impactScore >= 70 ? "bg-kaios-success" : item.impactScore >= 40 ? "bg-primary" : "bg-muted-foreground";
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-primary hover:underline">
+        ← 一覧に戻る
+      </button>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground">{item.title}</h2>
+        <Badge variant={item.status === "完了" ? "default" : "secondary"}>{item.status}</Badge>
+      </div>
+
+      {/* Impact Score */}
+      <div className="rounded-lg border border-border bg-muted/30 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            <span className="text-sm font-semibold text-foreground">インパクトスコア</span>
+          </div>
+          <span className={`text-3xl font-bold ${scoreColor}`}>{item.impactScore}<span className="text-sm font-normal text-muted-foreground">/100</span></span>
+        </div>
+        <Progress value={item.impactScore} className="h-2" />
+        <p className="text-xs text-muted-foreground mt-2">
+          {item.impactScore >= 70 ? "高インパクト: 組織に大きな改善効果が期待されます" :
+           item.impactScore >= 40 ? "中インパクト: 一定の改善効果が見込まれます" :
+           "改善の余地あり: ウェイト調整や改善内容の見直しを検討してください"}
+        </p>
+      </div>
+
+      {/* Details Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <DetailField label="問題の内容" value={item.problem} />
+        <DetailField label="原因仮説" value={item.cause} />
+        <DetailField label="改善策" value={item.solution} />
+        <DetailField label="期待効果" value={item.effect} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <DetailField label="部門" value={item.department} />
+        <DetailField label="カテゴリ" value={item.category} />
+        <DetailField label="再現性" value={item.reproducibility} />
+      </div>
+
+      {(item.occurrencePlace || item.frequency || item.numericalEvidence) && (
+        <div className="grid grid-cols-3 gap-3">
+          {item.occurrencePlace && <DetailField label="発生場所" value={item.occurrencePlace} />}
+          {item.frequency && <DetailField label="頻度" value={item.frequency} />}
+          {item.numericalEvidence && <DetailField label="数値根拠" value={item.numericalEvidence} />}
+        </div>
+      )}
+
+      {/* Adoption */}
+      <div className="rounded-lg border border-border p-4">
+        <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          採用状況
+        </h4>
+        {item.adoptedBy.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {item.adoptedBy.map((dept, i) => (
+              <Badge key={i} variant="outline">{dept}</Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">まだ他部署での採用はありません</p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>提案者: {author?.name || "不明"}</span>
+        <span>・</span>
+        <span>登録日: {item.createdAt}</span>
+        {item.tags.length > 0 && (
+          <>
+            <span>・</span>
+            <span>タグ: {item.tags.join(", ")}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DetailField = ({ label, value }: { label: string; value: string }) => (
+  <div className="rounded-lg border border-border bg-card p-3">
+    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+    <p className="text-sm text-foreground">{value || "—"}</p>
+  </div>
+);
+
 const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProps) => {
-  const { getKaizenByPerson, kaizenItems } = useKaios();
+  const { getKaizenByPerson } = useKaios();
   const navigate = useNavigate();
+  const [selectedKaizen, setSelectedKaizen] = useState<KaizenItem | null>(null);
 
   if (!person) return null;
 
   const personKaizen = getKaizenByPerson(person.id);
   const completedKaizen = personKaizen.filter(k => k.status === "完了");
-
-  // Calculate cross-department adoption count
   const totalAdoptions = personKaizen.reduce((sum, k) => sum + k.adoptedBy.length, 0);
-
-  // Departments that adopted this person's improvements
   const adoptedDepts = new Set(personKaizen.flatMap(k => k.adoptedBy));
-
-  // Continuous improvement: count months with at least one submission
   const months = new Set(personKaizen.map(k => k.createdAt.slice(0, 7)));
   const continuousMonths = months.size;
+  const avgScore = personKaizen.length > 0 ? Math.round(personKaizen.reduce((s, k) => s + k.impactScore, 0) / personKaizen.length) : 0;
 
-  // AI insight text
   const getInsightText = () => {
     const strengths: string[] = [];
     if (totalAdoptions >= 3) strengths.push("横断影響と再利用性");
     if (completedKaizen.length >= 3) strengths.push("高い完了率");
     if (continuousMonths >= 3) strengths.push("継続的な改善行動");
-
     if (strengths.length === 0) {
       return `${person.name.split(" ")[0]}さんは改善活動に積極的に参加しています。今後の改善案の提出と実行が期待されます。`;
     }
-
-    return `${person.name.split(" ")[0]}さんは、改善案の横展開と継続的な採用実績の観点で、追加的に注目すべき人材です。既存評価（自部署のKPI達成度中心）とは異なる軸として、**${strengths.join("と")}**で極めて高い示唆が見られます。`;
+    return `${person.name.split(" ")[0]}さんは、改善案の横展開と継続的な採用実績の観点で、追加的に注目すべき人材です。既存評価とは異なる軸として、**${strengths.join("と")}**で極めて高い示唆が見られます。`;
   };
 
-  // Top kaizen items (sorted by impact)
-  const topKaizen = [...personKaizen].sort((a, b) => b.impactScore - a.impactScore).slice(0, 3);
+  const topKaizen = [...personKaizen].sort((a, b) => b.impactScore - a.impactScore).slice(0, 5);
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) setSelectedKaizen(null);
+    onOpenChange(v);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="sr-only">{person.name}の詳細</DialogTitle>
         </DialogHeader>
 
-        {/* Profile Header */}
-        <div className="flex items-center gap-4 pb-4 border-b border-border">
-          <div className="w-16 h-16 rounded-full bg-kaios-warning-bg border-2 border-kaios-warning-border flex items-center justify-center text-xl font-bold text-kaios-warning-text">
-            {person.avatarInitial}
-          </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-foreground">{person.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              {person.department}　・　{person.role || "メンバー"}　・　入社{person.yearsAtCompany}年目
-            </p>
-          </div>
-        </div>
+        {selectedKaizen ? (
+          <KaizenDetailView item={selectedKaizen} onBack={() => setSelectedKaizen(null)} />
+        ) : (
+          <>
+            {/* Profile Header */}
+            <div className="flex items-center gap-4 pb-4 border-b border-border">
+              <div className="w-16 h-16 rounded-full bg-kaios-warning-bg border-2 border-kaios-warning-border flex items-center justify-center text-xl font-bold text-kaios-warning-text">
+                {person.avatarInitial}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-foreground">{person.name}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {person.department}　・　{person.role || "メンバー"}　・　入社{person.yearsAtCompany}年目
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-primary">{avgScore}<span className="text-xs text-muted-foreground font-normal">pt</span></p>
+                <p className="text-xs text-muted-foreground">平均スコア</p>
+              </div>
+            </div>
 
-        {/* AI Insight */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            なぜ注目か (AIインサイト)
-          </h3>
-          <Card className="bg-muted/30">
-            <CardContent className="p-4">
-              <p className="text-sm text-foreground leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: getInsightText().replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>')
-                }}
-              />
-            </CardContent>
-          </Card>
+            {/* AI Insight */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                なぜ注目か (AIインサイト)
+              </h3>
+              <Card className="bg-muted/30">
+                <CardContent className="p-4">
+                  <p className="text-sm text-foreground leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: getInsightText().replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>')
+                    }}
+                  />
+                </CardContent>
+              </Card>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            <StatCard
-              color="text-primary"
-              label="他部署採用回数"
-              value={`${totalAdoptions}回`}
-              sub="/ 過去半年"
-              description="提案が個人内で完結せず、複数部門で再利用されている"
-            />
-            <StatCard
-              color="text-kaios-success"
-              label="対象範囲"
-              value={`${adoptedDepts.size}部門`}
-              sub=""
-              description="特定チームに閉じない横断性が確認できる"
-            />
-            <StatCard
-              color="text-primary"
-              label="継続改善"
-              value={`${continuousMonths}か月連続`}
-              sub=""
-              description="一発の成功ではなく、継続的な改善行動が見られる"
-            />
-          </div>
-        </div>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <StatCard color="text-primary" label="他部署採用回数" value={`${totalAdoptions}回`} sub="/ 過去半年" description="提案が複数部門で再利用されている" />
+                <StatCard color="text-kaios-success" label="対象範囲" value={`${adoptedDepts.size}部門`} sub="" description="横断性が確認できる" />
+                <StatCard color="text-primary" label="継続改善" value={`${continuousMonths}か月連続`} sub="" description="継続的な改善行動" />
+              </div>
+            </div>
 
-        {/* Top Kaizen */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <BookmarkPlus className="w-4 h-4 text-primary" />
-              根拠事例 (トップ採用された改善)
-            </h3>
-            <button
-              onClick={() => { onOpenChange(false); navigate("/similar-cases"); }}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
-              すべての事例を見る
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
+            {/* Top Kaizen */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <BookmarkPlus className="w-4 h-4 text-primary" />
+                  根拠事例 (トップ改善案)
+                </h3>
+                <button
+                  onClick={() => { handleOpenChange(false); navigate("/similar-cases"); }}
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  すべての事例を見る <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
 
-          {topKaizen.map((k) => (
-            <Card key={k.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="text-xs">{k.createdAt.slice(0, 7).replace("-", "年")}月</Badge>
-                      <span>採用部署: {k.adoptedBy.length > 0 ? k.adoptedBy.join(", ") : "なし"}</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              {topKaizen.map((k) => {
+                const scoreColor = k.impactScore >= 70 ? "text-kaios-success" : k.impactScore >= 40 ? "text-primary" : "text-muted-foreground";
+                return (
+                  <Card key={k.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedKaizen(k)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">{k.createdAt.slice(0, 7).replace("-", "年")}月</Badge>
+                            <span>採用部署: {k.adoptedBy.length > 0 ? k.adoptedBy.join(", ") : "なし"}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-lg font-bold ${scoreColor}`}>{k.impactScore}<span className="text-xs font-normal text-muted-foreground">pt</span></span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {topKaizen.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">改善案がまだありません</p>
+              )}
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
 };
 
 const StatCard = ({ color, label, value, sub, description }: {
-  color: string;
-  label: string;
-  value: string;
-  sub: string;
-  description: string;
+  color: string; label: string; value: string; sub: string; description: string;
 }) => (
   <div className="rounded-lg border border-border bg-card p-3">
     <p className="text-xs text-muted-foreground flex items-center gap-1">
