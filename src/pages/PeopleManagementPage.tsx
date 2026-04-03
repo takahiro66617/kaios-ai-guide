@@ -171,7 +171,7 @@ const PeopleManagementPage = () => {
         </div>
 
         {/* People List */}
-        <Card>
+        <Card data-tour="people-list">
           <CardHeader>
             <CardTitle className="text-base">登録済み提案者</CardTitle>
           </CardHeader>
