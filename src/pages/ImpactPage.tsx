@@ -110,7 +110,7 @@ const ImpactPage = () => {
   // Compute stats from filtered data
   const totalItems = filteredItems.length;
   const completedItems = filteredItems.filter(k => k.status === "完了").length;
-  const avgImpact = totalItems > 0 ? Math.round(filteredItems.reduce((s, k) => s + calculateImpactScore(k), 0) / totalItems) : 0;
+  const avgImpact = totalItems > 0 ? Math.round(filteredItems.reduce((s, k) => s + k.impactScore, 0) / totalItems) : 0;
   const activeDepts = new Set(filteredItems.map(k => k.department));
   const thisMonthItems = filteredItems.filter(k => {
     const now = new Date();
