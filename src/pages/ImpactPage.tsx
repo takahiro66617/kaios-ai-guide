@@ -1,8 +1,16 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Settings, Sparkles } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Settings, Sparkles, Filter, Calendar, Building2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BarChart,
   Bar,
@@ -30,23 +38,90 @@ const COLORS = [
   "hsl(190, 80%, 45%)",
 ];
 
+const DATE_RANGE_OPTIONS = [
+  { value: "all", label: "全期間" },
+  { value: "1m", label: "直近1ヶ月" },
+  { value: "3m", label: "直近3ヶ月" },
+  { value: "6m", label: "直近6ヶ月" },
+  { value: "1y", label: "直近1年" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "全ステータス" },
+  { value: "構造化済み", label: "構造化済み" },
+  { value: "ナレッジ登録済み", label: "ナレッジ登録済み" },
+  { value: "実行中", label: "実行中" },
+  { value: "完了", label: "完了" },
+];
+
+const SORT_OPTIONS = [
+  { value: "score-desc", label: "スコア高い順" },
+  { value: "score-asc", label: "スコア低い順" },
+  { value: "count-desc", label: "件数多い順" },
+  { value: "date-desc", label: "新しい順" },
+];
+
 const ImpactPage = () => {
   const { kaizenItems, people, getKaizenByPerson, evalSettings, calculateImpactScore } = useKaios();
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Compute real stats from shared data
-  const totalItems = kaizenItems.length;
-  const completedItems = kaizenItems.filter(k => k.status === "完了").length;
-  const avgImpact = totalItems > 0 ? Math.round(kaizenItems.reduce((s, k) => s + calculateImpactScore(k), 0) / totalItems) : 0;
-  const activeDepts = new Set(kaizenItems.map(k => k.department));
-  const thisMonthItems = kaizenItems.filter(k => k.createdAt >= "2026-03-01").length;
+  // Filter states
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [dateRange, setDateRange] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("score-desc");
 
-  // Department data - computed from real items
+  // Get unique departments from data
+  const allDepartments = useMemo(() => {
+    const depts = new Set(kaizenItems.map(k => k.department));
+    return Array.from(depts).sort();
+  }, [kaizenItems]);
+
+  // Apply filters
+  const filteredItems = useMemo(() => {
+    let items = [...kaizenItems];
+
+    if (deptFilter !== "all") {
+      items = items.filter(k => k.department === deptFilter);
+    }
+    if (statusFilter !== "all") {
+      items = items.filter(k => k.status === statusFilter);
+    }
+    if (dateRange !== "all") {
+      const now = new Date();
+      const months = dateRange === "1m" ? 1 : dateRange === "3m" ? 3 : dateRange === "6m" ? 6 : 12;
+      const cutoff = new Date(now.getFullYear(), now.getMonth() - months, now.getDate()).toISOString().slice(0, 10);
+      items = items.filter(k => k.createdAt >= cutoff);
+    }
+
+    return items;
+  }, [kaizenItems, deptFilter, statusFilter, dateRange]);
+
+  const hasActiveFilters = deptFilter !== "all" || dateRange !== "all" || statusFilter !== "all";
+
+  const clearFilters = () => {
+    setDeptFilter("all");
+    setDateRange("all");
+    setStatusFilter("all");
+  };
+
+  // Compute stats from filtered data
+  const totalItems = filteredItems.length;
+  const completedItems = filteredItems.filter(k => k.status === "完了").length;
+  const avgImpact = totalItems > 0 ? Math.round(filteredItems.reduce((s, k) => s + calculateImpactScore(k), 0) / totalItems) : 0;
+  const activeDepts = new Set(filteredItems.map(k => k.department));
+  const thisMonthItems = filteredItems.filter(k => {
+    const now = new Date();
+    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return k.createdAt.startsWith(monthStr);
+  }).length;
+
+  // Department data
   const departmentData = useMemo(() => {
     const deptMap = new Map<string, { count: number; totalImpact: number }>();
-    kaizenItems.forEach(k => {
+    filteredItems.forEach(k => {
       const existing = deptMap.get(k.department) || { count: 0, totalImpact: 0 };
       existing.count++;
       existing.totalImpact += calculateImpactScore(k);
@@ -57,44 +132,56 @@ const ImpactPage = () => {
       count: data.count,
       impact: Math.round(data.totalImpact / data.count),
     })).sort((a, b) => b.count - a.count);
-  }, [kaizenItems, calculateImpactScore]);
+  }, [filteredItems, calculateImpactScore]);
 
-  // Category data - computed from real items
+  // Category data
   const categoryData = useMemo(() => {
     const catMap = new Map<string, number>();
-    kaizenItems.forEach(k => catMap.set(k.category, (catMap.get(k.category) || 0) + 1));
+    filteredItems.forEach(k => catMap.set(k.category, (catMap.get(k.category) || 0) + 1));
     return Array.from(catMap.entries())
-      .map(([name, value]) => ({ name, value: Math.round((value / totalItems) * 100) }))
+      .map(([name, value]) => ({ name, value: totalItems > 0 ? Math.round((value / totalItems) * 100) : 0 }))
       .sort((a, b) => b.value - a.value);
-  }, [kaizenItems, totalItems]);
+  }, [filteredItems, totalItems]);
 
-  // Top contributors - computed from real people & items
+  // Top contributors from filtered data
   const topContributors = useMemo(() => {
-    return people.map(p => {
-      const items = getKaizenByPerson(p.id);
-      const totalAdoptions = items.reduce((s, k) => s + k.adoptedBy.length, 0);
-      const avgScore = items.length > 0
-        ? Math.round(items.reduce((s, k) => s + calculateImpactScore(k), 0) / items.length)
-        : 0;
-      return {
-        person: p,
-        count: items.length,
-        score: avgScore,
-        adoptions: totalAdoptions,
-        completed: items.filter(k => k.status === "完了").length,
-      };
-    })
-    .filter(c => c.count > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
-  }, [people, getKaizenByPerson, calculateImpactScore]);
+    const personMap = new Map<string, { count: number; totalScore: number; adoptions: number; completed: number }>();
+    filteredItems.forEach(k => {
+      const existing = personMap.get(k.authorId) || { count: 0, totalScore: 0, adoptions: 0, completed: 0 };
+      existing.count++;
+      existing.totalScore += calculateImpactScore(k);
+      existing.adoptions += k.adoptedBy.length;
+      if (k.status === "完了") existing.completed++;
+      personMap.set(k.authorId, existing);
+    });
 
-  // Recent high-impact items
+    return Array.from(personMap.entries())
+      .map(([personId, data]) => {
+        const person = people.find(p => p.id === personId);
+        if (!person) return null;
+        return {
+          person,
+          count: data.count,
+          score: Math.round(data.totalScore / data.count),
+          adoptions: data.adoptions,
+          completed: data.completed,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (sortBy === "score-asc") return a!.score - b!.score;
+        if (sortBy === "count-desc") return b!.count - a!.count;
+        return b!.score - a!.score;
+      })
+      .slice(0, 8) as { person: Person; count: number; score: number; adoptions: number; completed: number }[];
+  }, [filteredItems, people, calculateImpactScore, sortBy]);
+
+  // High impact items
   const highImpactItems = useMemo(() => {
-    return [...kaizenItems]
+    return [...filteredItems]
       .sort((a, b) => calculateImpactScore(b) - calculateImpactScore(a))
       .slice(0, 5);
-  }, [kaizenItems, calculateImpactScore]);
+  }, [filteredItems, calculateImpactScore]);
 
   const handlePersonClick = (person: Person) => {
     setSelectedPerson(person);
@@ -116,7 +203,7 @@ const ImpactPage = () => {
           </div>
         </div>
 
-        {/* Eval Settings Banner - shows connection to evaluation criteria */}
+        {/* Eval Settings Banner */}
         <div className="flex items-center justify-between p-4 rounded-lg border bg-primary/5 border-primary/20">
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-primary shrink-0" />
@@ -125,7 +212,7 @@ const ImpactPage = () => {
                 現在の評価方針: <span className="text-primary">Speed {evalSettings.speed}%</span> / <span className="text-primary">Cross-functional {evalSettings.crossFunctional}%</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                全{totalItems}件の改善案のインパクトスコアがこの方針に基づいて算出されています
+                全{kaizenItems.length}件の改善案のインパクトスコアがこの方針に基づいて算出されています
               </p>
             </div>
           </div>
@@ -138,11 +225,77 @@ const ImpactPage = () => {
           </button>
         </div>
 
-        {/* KPI Cards - all from real data */}
+        {/* Filter Bar */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                絞り込み:
+              </div>
+              <Select value={deptFilter} onValueChange={setDeptFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <Building2 className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部門</SelectItem>
+                  {allDepartments.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="w-[150px] h-9">
+                  <Calendar className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_RANGE_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[150px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" className="gap-1 text-xs h-9" onClick={clearFilters}>
+                  <X className="w-3 h-3" />
+                  フィルタをクリア
+                </Button>
+              )}
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="text-xs">
+                  {totalItems}件表示中 / 全{kaizenItems.length}件
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard icon={Zap} label="総改善案数" value={String(totalItems)} sub={`+${thisMonthItems} 今月`} />
           <KpiCard icon={TrendingUp} label="平均インパクトスコア" value={`${avgImpact}%`} sub="評価方針に連動" />
-          <KpiCard icon={Users} label="参加部門数" value={`${activeDepts.size}部門`} sub={`${people.length}名参加`} />
+          <KpiCard icon={Users} label="参加部門数" value={`${activeDepts.size}部門`} sub={`${people.length}名登録`} />
           <KpiCard icon={Award} label="実行完了率" value={`${totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0}%`} sub={`${completedItems}件完了`} />
         </div>
 
@@ -153,16 +306,20 @@ const ImpactPage = () => {
               <CardTitle className="text-base">部門別 改善件数とインパクトスコア</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={departmentData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="count" name="件数" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="impact" name="平均スコア" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {departmentData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={departmentData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" name="件数" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="impact" name="平均スコア" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-12">フィルタ条件に該当するデータがありません</p>
+              )}
             </CardContent>
           </Card>
 
@@ -171,32 +328,36 @@ const ImpactPage = () => {
               <CardTitle className="text-base">カテゴリ別 改善案の分布</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, value }) => `${name} (${value}%)`}
-                  >
-                    {categoryData.map((_, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, value }) => `${name} (${value}%)`}
+                    >
+                      {categoryData.map((_, idx) => (
+                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-12">フィルタ条件に該当するデータがありません</p>
+              )}
             </CardContent>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Contributors - clickable to person detail */}
+          {/* Top Contributors */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -206,7 +367,7 @@ const ImpactPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topContributors.map((c, i) => (
+                {topContributors.length > 0 ? topContributors.map((c) => (
                   <button
                     key={c.person.id}
                     onClick={() => handlePersonClick(c.person)}
@@ -229,12 +390,14 @@ const ImpactPage = () => {
                       <Progress value={c.score} className="h-2" />
                     </div>
                   </button>
-                ))}
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">該当する貢献者がいません</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* High Impact Items - linked to similar cases */}
+          {/* High Impact Items */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -251,13 +414,14 @@ const ImpactPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {highImpactItems.map((item) => (
+                {highImpactItems.length > 0 ? highImpactItems.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="min-w-0 flex-1">
                       <h4 className="text-sm font-medium text-foreground truncate">{item.title}</h4>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                         <span>{item.department}</span>
                         <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                        <Badge variant="secondary" className="text-xs">{item.status}</Badge>
                         {item.adoptedBy.length > 0 && (
                           <span className="text-kaios-success">{item.adoptedBy.length}部門採用</span>
                         )}
@@ -265,7 +429,9 @@ const ImpactPage = () => {
                     </div>
                     <span className="text-lg font-bold text-primary ml-3">{calculateImpactScore(item)}</span>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">該当する改善案がありません</p>
+                )}
               </div>
             </CardContent>
           </Card>
