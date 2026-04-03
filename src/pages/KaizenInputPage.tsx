@@ -10,7 +10,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const KAIZEN_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="person-selector"]', title: "① 提案者を選択", description: "改善案の提案者を選択します。提案者は事前に「提案者管理」ページで登録が必要です。", position: "bottom" },
+  { selector: '[data-tour="step1-form"]', title: "② 必須項目を入力", description: "問題の内容・発生場所・影響・頻度・原因仮説・改善案の方向・期待効果の7項目を入力します。", position: "bottom" },
+  { selector: '[data-tour="generate-button"]', title: "③ AIドラフトを生成", description: "入力内容をもとにAIが構造化された改善シートを自動生成します。その後、差分だけ修正して確定します。", position: "top" },
+  { selector: '[data-tour="recent-items"]', title: "④ 最近の登録", description: "直近に登録した改善案が表示されます。登録後はインパクトの見える化にも反映されます。", position: "top" },
+];
 import {
   Select,
   SelectContent,
