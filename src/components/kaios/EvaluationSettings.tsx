@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useKaios } from "@/contexts/KaiosContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -69,32 +70,22 @@ const mockHistory: HistoryEntry[] = [
   { date: "2026-03-01 11:45", user: "鈴木 一郎", speed: 40, cross: 60 },
 ];
 
-const testCases = [
-  {
-    title: "営業報告書の自動生成",
-    dept: "営業部",
-    description: "CRMデータから営業報告書を自動生成し、工数を80%削減。",
-  },
-  {
-    title: "製造ラインの予防保全",
-    dept: "製造部",
-    description: "IoTセンサーデータをAIで分析し、故障予測精度を向上。",
-  },
-];
 
 const EvaluationSettings = () => {
-  const [speed, setSpeed] = useState(70);
-  const [crossFunctional, setCrossFunctional] = useState(85);
-  const [savedSpeed, setSavedSpeed] = useState(70);
-  const [savedCross, setSavedCross] = useState(85);
+  const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore } = useKaios();
+  const [speed, setSpeed] = useState(evalSettings.speed);
+  const [crossFunctional, setCrossFunctional] = useState(evalSettings.crossFunctional);
+  const [savedSpeed, setSavedSpeed] = useState(evalSettings.speed);
+  const [savedCross, setSavedCross] = useState(evalSettings.crossFunctional);
 
   const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
 
   const handleSave = () => {
     setSavedSpeed(speed);
     setSavedCross(crossFunctional);
+    setEvalSettings({ speed, crossFunctional });
     toast.success("設定を保存しました", {
-      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}%`,
+      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}% — 全${kaizenItems.length}件の改善案のスコアが再計算されます`,
     });
   };
 
@@ -104,12 +95,11 @@ const EvaluationSettings = () => {
     toast.info("デフォルト値に戻しました");
   };
 
-  const getTestScore = (tc: typeof testCases[0]) => {
-    // Simple mock scoring based on current weights
-    const base = 60;
-    const speedBonus = tc.dept === "営業部" ? speed * 0.15 : speed * 0.08;
-    const crossBonus = tc.dept === "製造部" ? crossFunctional * 0.1 : crossFunctional * 0.12;
-    return Math.min(100, Math.round(base + speedBonus + crossBonus) / 2);
+  // Use real kaizen items for test cases
+  const testCaseItems = kaizenItems.slice(0, 3);
+  const getTestScore = (item: typeof kaizenItems[0]) => {
+    const tempItem = { ...item };
+    return calculateImpactScore(tempItem);
   };
 
   return (
@@ -161,7 +151,7 @@ const EvaluationSettings = () => {
                   現在の設定（Speed: {speed}%, Cross-functional: {crossFunctional}%）でサンプル改善案を評価した結果：
                 </p>
                 <div className="space-y-3 mt-2">
-                  {testCases.map((tc, i) => {
+                  {testCaseItems.map((tc, i) => {
                     const score = getTestScore(tc);
                     return (
                       <div key={i} className="p-4 rounded-lg border border-border bg-muted/30">
@@ -171,7 +161,7 @@ const EvaluationSettings = () => {
                             {score}点
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{tc.dept} — {tc.description}</p>
+                        <p className="text-xs text-muted-foreground">{tc.department} — {tc.solution}</p>
                       </div>
                     );
                   })}
