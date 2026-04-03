@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   "/similar-cases": "類似事例を探す",
   "/impact": "インパクトの見える化",
   "/settings": "設定",
+  "/debug-reports": "バグレポート管理",
 };
 
 interface KaiosHeaderProps {
