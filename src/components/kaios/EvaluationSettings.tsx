@@ -151,7 +151,7 @@ const EvaluationSettings = () => {
                   現在の設定（Speed: {speed}%, Cross-functional: {crossFunctional}%）でサンプル改善案を評価した結果：
                 </p>
                 <div className="space-y-3 mt-2">
-                  {testCases.map((tc, i) => {
+                  {testCaseItems.map((tc, i) => {
                     const score = getTestScore(tc);
                     return (
                       <div key={i} className="p-4 rounded-lg border border-border bg-muted/30">
@@ -161,7 +161,7 @@ const EvaluationSettings = () => {
                             {score}点
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{tc.dept} — {tc.description}</p>
+                        <p className="text-xs text-muted-foreground">{tc.department} — {tc.solution}</p>
                       </div>
                     );
                   })}
