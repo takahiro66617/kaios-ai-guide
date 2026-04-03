@@ -292,7 +292,7 @@ const EvaluationSettings = () => {
                       <DialogTitle>変更履歴</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3 mt-2">
-                      {mockHistory.map((entry, i) => (
+                      {history.length > 0 ? history.map((entry, i) => (
                         <div key={i} className="p-3 rounded-lg border border-border bg-muted/30 text-sm">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-foreground">{entry.user}</span>
