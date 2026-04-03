@@ -236,7 +236,7 @@ const ImpactPage = () => {
         </div>
 
         {/* Filter Bar */}
-        <Card>
+        <Card data-tour="filter-bar">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
