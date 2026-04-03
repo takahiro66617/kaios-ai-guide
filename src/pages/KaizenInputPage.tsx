@@ -321,7 +321,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-2" data-tour="generate-button">
                 <Button onClick={handleGenerateDraft} disabled={!isStep1Valid() || isProcessing} className="gap-2">
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   AIドラフトを生成する
