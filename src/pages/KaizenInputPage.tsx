@@ -64,7 +64,7 @@ const KaizenInputPage = () => {
       category: result.category,
       reproducibility: result.reproducibility || "中",
       tags: result.tags || [],
-      authorId: "p1", // current user (山田太郎 → using p1 as default for demo)
+      authorId: selectedPersonId,
     });
     toast.success("ナレッジベースに登録しました", {
       description: `「${newItem.title}」が全社のナレッジとして共有されます`,
