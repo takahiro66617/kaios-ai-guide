@@ -16,25 +16,34 @@ export type Database = {
     Tables: {
       eval_settings: {
         Row: {
+          cost_efficiency: number
           created_at: string
           cross_functional: number
           id: string
+          innovation: number
+          reproducibility_weight: number
           speed: number
           updated_at: string
           updated_by: string
         }
         Insert: {
+          cost_efficiency?: number
           created_at?: string
           cross_functional?: number
           id?: string
+          innovation?: number
+          reproducibility_weight?: number
           speed?: number
           updated_at?: string
           updated_by?: string
         }
         Update: {
+          cost_efficiency?: number
           created_at?: string
           cross_functional?: number
           id?: string
+          innovation?: number
+          reproducibility_weight?: number
           speed?: number
           updated_at?: string
           updated_by?: string
@@ -43,23 +52,32 @@ export type Database = {
       }
       eval_settings_history: {
         Row: {
+          cost_efficiency: number
           created_at: string
           cross_functional: number
           id: string
+          innovation: number
+          reproducibility_weight: number
           speed: number
           updated_by: string
         }
         Insert: {
+          cost_efficiency?: number
           created_at?: string
           cross_functional: number
           id?: string
+          innovation?: number
+          reproducibility_weight?: number
           speed: number
           updated_by?: string
         }
         Update: {
+          cost_efficiency?: number
           created_at?: string
           cross_functional?: number
           id?: string
+          innovation?: number
+          reproducibility_weight?: number
           speed?: number
           updated_by?: string
         }
