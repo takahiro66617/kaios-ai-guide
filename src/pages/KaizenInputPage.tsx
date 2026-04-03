@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Save, Search, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, Save, Search, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const EXAMPLE_INPUT = "営業資料の最新版を探すのが手間だったので、全資料を社内Wikiにまとめた";
 
@@ -16,8 +23,9 @@ const KaizenInputPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState("p1");
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems } = useKaios();
+  const { addKaizenItem, kaizenItems, people, getPersonById } = useKaios();
 
   const handleStructure = async () => {
     const text = inputText.trim();
