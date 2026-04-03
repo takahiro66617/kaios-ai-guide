@@ -25,7 +25,7 @@ const KaizenInputPage = () => {
   const [draft, setDraft] = useState<string | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState("p1");
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people, getPersonById } = useKaios();
+  const { addKaizenItem, kaizenItems, people, getPersonById, evalSettings, calculateImpactScore } = useKaios();
 
   const handleStructure = async () => {
     const text = inputText.trim();
