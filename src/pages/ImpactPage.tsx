@@ -226,7 +226,7 @@ const ImpactPage = () => {
             <Sparkles className="w-5 h-5 text-primary shrink-0" />
             <div>
               <p className="text-sm font-medium text-foreground">
-                現在の評価方針: <span className="text-primary">Speed {evalSettings.speed}%</span> / <span className="text-primary">Cross-functional {evalSettings.crossFunctional}%</span>
+                現在の評価方針: <span className="text-primary">Speed {evalSettings.speed}%</span> / <span className="text-primary">Cross {evalSettings.crossFunctional}%</span> / <span className="text-primary">再現性 {evalSettings.reproducibilityWeight}%</span> / <span className="text-primary">コスト効率 {evalSettings.costEfficiency}%</span> / <span className="text-primary">革新性 {evalSettings.innovation}%</span>
               </p>
               <p className="text-xs text-muted-foreground">
                 全{kaizenItems.length}件の改善案のインパクトスコアがこの方針に基づいて算出されています
