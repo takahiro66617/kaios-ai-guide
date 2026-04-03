@@ -313,6 +313,9 @@ const SimilarCasesPage = () => {
                 <Field label="🔍 原因" value={detailItem.cause} />
                 <Field label="💡 解決策" value={detailItem.solution} />
                 <Field label="📈 効果" value={detailItem.effect} />
+                {detailItem.occurrencePlace && <Field label="📍 発生場所" value={detailItem.occurrencePlace} />}
+                {detailItem.frequency && <Field label="🔄 頻度" value={detailItem.frequency} />}
+                {detailItem.numericalEvidence && <Field label="📊 数値根拠" value={detailItem.numericalEvidence} />}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {detailItem.tags.map((t, i) => (
