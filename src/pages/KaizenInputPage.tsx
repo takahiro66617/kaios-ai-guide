@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sparkles, Save, Search, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,9 +23,16 @@ const KaizenInputPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
-  const [selectedPersonId, setSelectedPersonId] = useState("p1");
+  const [selectedPersonId, setSelectedPersonId] = useState("");
   const navigate = useNavigate();
   const { addKaizenItem, kaizenItems, people, getPersonById, evalSettings, calculateImpactScore } = useKaios();
+
+  // Set default person to first in list when people load
+  useEffect(() => {
+    if (people.length > 0 && !selectedPersonId) {
+      setSelectedPersonId(people[0].id);
+    }
+  }, [people, selectedPersonId]);
 
   const handleStructure = async () => {
     const text = inputText.trim();
@@ -54,6 +61,11 @@ const KaizenInputPage = () => {
 
   const handleRegisterToKnowledgeBase = () => {
     if (!result) { toast.error("先にAIで構造化してください"); return; }
+    if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
+    
+    // Use AI-detected related_departments as adoptedBy
+    const relatedDepts = result.related_departments || [];
+    
     const newItem = addKaizenItem({
       title: result.title,
       problem: result.problem,
@@ -65,9 +77,10 @@ const KaizenInputPage = () => {
       reproducibility: result.reproducibility || "中",
       tags: result.tags || [],
       authorId: selectedPersonId,
+      adoptedBy: relatedDepts,
     });
     toast.success("ナレッジベースに登録しました", {
-      description: `「${newItem.title}」が全社のナレッジとして共有されます`,
+      description: `「${newItem.title}」が全社のナレッジとして共有されます（関連部署: ${relatedDepts.length}件）`,
     });
     setResult(null);
     setInputText("");
@@ -94,7 +107,7 @@ const KaizenInputPage = () => {
             <h1 className="text-2xl font-bold text-foreground">改善入力と整理</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
               現場での気づきや、試してみた工夫をテキストで入力してください。
-              AIが自動で「課題」「原因」「解決策」などの再利用可能な形式に構造化します。
+              AIが自動で「課題」「原因」「解決策」「関連部署」などの再利用可能な形式に構造化します。
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -121,7 +134,7 @@ const KaizenInputPage = () => {
               <span className="text-sm font-medium text-foreground">提案者:</span>
               <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
                 <SelectTrigger className="w-[260px]">
-                  <SelectValue />
+                  <SelectValue placeholder="提案者を選択" />
                 </SelectTrigger>
                 <SelectContent>
                   {people.map((p) => (
@@ -203,7 +216,9 @@ const KaizenInputPage = () => {
                       solution: result.solution, effect: result.effect, department: result.department,
                       category: result.category, reproducibility: result.reproducibility || "中",
                       tags: result.tags || [], status: "構造化済み", authorId: selectedPersonId,
-                      createdAt: new Date().toISOString().slice(0, 10), adoptedBy: [], impactScore: 0,
+                      createdAt: new Date().toISOString().slice(0, 10),
+                      adoptedBy: result.related_departments || [],
+                      impactScore: 0,
                     })}
                   </p>
                   <p className="text-xs text-muted-foreground">/ 100</p>
@@ -223,6 +238,21 @@ const KaizenInputPage = () => {
                 <StructuredField label="解決策" value={result.solution} icon="💡" />
                 <StructuredField label="効果" value={result.effect} icon="📈" />
               </div>
+
+              {/* AI-detected related departments */}
+              {result.related_departments && result.related_departments.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">🏢 AIが検出した関連部署（インパクト見える化に反映）</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.related_departments.map((dept: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary">
+                        <Building2 className="w-3 h-3 mr-1" />{dept}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">タグ</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -264,10 +294,13 @@ const KaizenInputPage = () => {
                               <span>{item.department}</span>
                               {author && <span className="text-primary">{author.name}</span>}
                               <span>{item.createdAt}</span>
+                              {item.adoptedBy.length > 0 && (
+                                <span className="text-kaios-success">{item.adoptedBy.length}部門関連</span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-primary">{calculateImpactScore(item)}pt</span>
+                            <span className="text-sm font-bold text-primary">{item.impactScore}pt</span>
                             <Badge variant="secondary" className="text-xs">{item.status}</Badge>
                           </div>
                         </div>

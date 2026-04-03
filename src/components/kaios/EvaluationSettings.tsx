@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKaios } from "@/contexts/KaiosContext";
@@ -64,13 +64,6 @@ interface HistoryEntry {
   cross: number;
 }
 
-const mockHistory: HistoryEntry[] = [
-  { date: "2026-04-03 10:30", user: "山田 太郎", speed: 70, cross: 85 },
-  { date: "2026-03-28 14:15", user: "佐藤 花子", speed: 60, cross: 75 },
-  { date: "2026-03-15 09:00", user: "山田 太郎", speed: 50, cross: 50 },
-  { date: "2026-03-01 11:45", user: "鈴木 一郎", speed: 40, cross: 60 },
-];
-
 
 const EvaluationSettings = () => {
   const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore, refreshItems } = useKaios();
@@ -79,6 +72,31 @@ const EvaluationSettings = () => {
   const [savedSpeed, setSavedSpeed] = useState(evalSettings.speed);
   const [savedCross, setSavedCross] = useState(evalSettings.crossFunctional);
   const [isSaving, setIsSaving] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("eval_settings_history")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (!error && data) {
+        setHistory((data as any[]).map(row => ({
+          date: new Date(row.created_at).toLocaleString("ja-JP"),
+          user: row.updated_by || "システム",
+          speed: row.speed,
+          cross: row.cross_functional,
+        })));
+      }
+    } catch (e) {
+      console.error("Error fetching history:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
 
@@ -96,12 +114,19 @@ const EvaluationSettings = () => {
         return;
       }
 
+      // Save history entry
+      await supabase.from("eval_settings_history").insert({
+        speed,
+        cross_functional: crossFunctional,
+        updated_by: "山田 太郎",
+      } as any);
+
       setSavedSpeed(speed);
       setSavedCross(crossFunctional);
       setEvalSettings({ speed, crossFunctional });
 
-      // Refresh items to get updated scores from DB
-      await refreshItems();
+      // Refresh items and history
+      await Promise.all([refreshItems(), fetchHistory()]);
 
       toast.success("設定を保存し、AIでスコアを再計算しました", {
         description: `${data?.updated ?? 0}件の改善案のインパクトスコアが更新されました`,
@@ -274,7 +299,7 @@ const EvaluationSettings = () => {
                       <DialogTitle>変更履歴</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3 mt-2">
-                      {mockHistory.map((entry, i) => (
+                      {history.length > 0 ? history.map((entry, i) => (
                         <div key={i} className="p-3 rounded-lg border border-border bg-muted/30 text-sm">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-foreground">{entry.user}</span>
@@ -284,7 +309,9 @@ const EvaluationSettings = () => {
                             Speed: {entry.speed}% / Cross-functional: {entry.cross}%
                           </p>
                         </div>
-                      ))}
+                      )) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">変更履歴はまだありません</p>
+                      )}
                     </div>
                     <DialogFooter>
                       <DialogClose asChild>

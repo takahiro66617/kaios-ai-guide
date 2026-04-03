@@ -38,20 +38,10 @@ serve(async (req) => {
           {
             role: "system",
             content: `あなたは企業の改善活動を支援するAIアシスタントです。
-ユーザーが入力した自由記述テキスト（現場の気づき、改善の取り組み、業務で変えたこと）を分析し、以下の構造化フォーマットに整理してください。
+ユーザーが入力した自由記述テキスト（現場の気づき、改善の取り組み、業務で変えたこと）を分析し、構造化フォーマットに整理してください。
 
-必ず以下のJSON形式で返してください。余分なテキストは不要です：
-{
-  "title": "改善案の簡潔なタイトル（20文字以内）",
-  "problem": "課題：現状の問題点を簡潔に記述",
-  "cause": "原因：問題が起きている根本的な原因",
-  "solution": "解決策：実施した、または提案する具体的な改善内容",
-  "effect": "効果：期待される（または実際の）改善効果",
-  "department": "関連部門：最も関連する部門名",
-  "category": "カテゴリ：業務効率化/DX推進/標準化/可視化/コスト削減/品質向上/その他 のいずれか",
-  "reproducibility": "再現性：他部署でも活用できるかどうかの評価（高/中/低）",
-  "tags": ["関連するキーワードタグを3〜5個"]
-}`,
+重要：related_departments（関連部署）は、この改善が直接的・間接的に効果を及ぼす可能性がある全ての部署を推定して含めてください。
+例えば「営業資料をWikiにまとめた」なら、営業部だけでなく、マーケティング部、カスタマーサポート部なども関連する可能性があります。`,
           },
           {
             role: "user",
@@ -67,12 +57,12 @@ serve(async (req) => {
               parameters: {
                 type: "object",
                 properties: {
-                  title: { type: "string", description: "改善案の簡潔なタイトル" },
-                  problem: { type: "string", description: "課題：現状の問題点" },
-                  cause: { type: "string", description: "原因：根本的な原因" },
-                  solution: { type: "string", description: "解決策：具体的な改善内容" },
-                  effect: { type: "string", description: "効果：期待される改善効果" },
-                  department: { type: "string", description: "関連部門" },
+                  title: { type: "string", description: "改善案の簡潔なタイトル（20文字以内）" },
+                  problem: { type: "string", description: "課題：現状の問題点を簡潔に記述" },
+                  cause: { type: "string", description: "原因：問題が起きている根本的な原因" },
+                  solution: { type: "string", description: "解決策：実施した、または提案する具体的な改善内容" },
+                  effect: { type: "string", description: "効果：期待される（または実際の）改善効果" },
+                  department: { type: "string", description: "主管部門：最も関連する部門名（例：営業部、製造部）" },
                   category: {
                     type: "string",
                     enum: ["業務効率化", "DX推進", "標準化", "可視化", "コスト削減", "品質向上", "その他"],
@@ -80,14 +70,20 @@ serve(async (req) => {
                   reproducibility: {
                     type: "string",
                     enum: ["高", "中", "低"],
+                    description: "他部署でも活用できるかどうかの評価",
                   },
                   tags: {
                     type: "array",
                     items: { type: "string" },
-                    description: "関連するキーワードタグ",
+                    description: "関連するキーワードタグ（3〜5個）",
+                  },
+                  related_departments: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "この改善が波及効果を持つ可能性のある関連部署の一覧（主管部門以外も含む）。例：営業部、カスタマーサポート部、経営企画部",
                   },
                 },
-                required: ["title", "problem", "cause", "solution", "effect", "department", "category", "reproducibility", "tags"],
+                required: ["title", "problem", "cause", "solution", "effect", "department", "category", "reproducibility", "tags", "related_departments"],
                 additionalProperties: false,
               },
             },

@@ -75,7 +75,7 @@ interface KaiosContextType {
   isLoading: boolean;
   evalSettings: EvalSettings;
   setEvalSettings: (s: EvalSettings) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "adoptedBy" | "impactScore" | "status">) => KaizenItem;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => KaizenItem;
   updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
   getPersonById: (id: string) => Person | undefined;
   getKaizenByPerson: (personId: string) => KaizenItem[];
@@ -173,13 +173,14 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     return Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus));
   }, [evalSettings]);
 
-  const addKaizenItem = useCallback((item: Omit<KaizenItem, "id" | "createdAt" | "adoptedBy" | "impactScore" | "status">) => {
+  const addKaizenItem = useCallback((item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => {
     const tempId = `temp-${Date.now()}`;
+    const adoptedBy = item.adoptedBy || [];
     const newItem: KaizenItem = {
       ...item,
       id: tempId,
       createdAt: new Date().toISOString().slice(0, 10),
-      adoptedBy: [],
+      adoptedBy,
       impactScore: 0,
       status: "構造化済み",
     };
@@ -202,7 +203,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
             tags: item.tags,
             status: "構造化済み",
             author_id: item.authorId,
-            adopted_by: [],
+            adopted_by: adoptedBy,
             impact_score: newItem.impactScore,
           })
           .select()
