@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      kaizen_items: {
+        Row: {
+          adopted_by: string[]
+          author_id: string
+          category: string
+          cause: string
+          created_at: string
+          department: string
+          effect: string
+          id: string
+          impact_score: number
+          problem: string
+          reproducibility: string
+          solution: string
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          adopted_by?: string[]
+          author_id: string
+          category: string
+          cause: string
+          created_at?: string
+          department: string
+          effect: string
+          id?: string
+          impact_score?: number
+          problem: string
+          reproducibility?: string
+          solution: string
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          adopted_by?: string[]
+          author_id?: string
+          category?: string
+          cause?: string
+          created_at?: string
+          department?: string
+          effect?: string
+          id?: string
+          impact_score?: number
+          problem?: string
+          reproducibility?: string
+          solution?: string
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
