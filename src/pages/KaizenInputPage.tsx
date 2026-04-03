@@ -113,9 +113,31 @@ const KaizenInputPage = () => {
           </div>
         </div>
 
-        {/* Input Area */}
+        {/* Person Selector + Input Area */}
         <Card>
           <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">提案者:</span>
+              <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
+                <SelectTrigger className="w-[260px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {people.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}（{p.department}）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(() => {
+                const person = getPersonById(selectedPersonId);
+                return person ? (
+                  <span className="text-xs text-muted-foreground">{person.role} ・ 入社{person.yearsAtCompany}年目</span>
+                ) : null;
+              })()}
+            </div>
             <Textarea
               placeholder="気づいた改善、試した工夫、業務で変えたことを自由に入力してください..."
               value={inputText}
