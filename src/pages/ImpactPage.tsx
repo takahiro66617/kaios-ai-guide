@@ -368,7 +368,7 @@ const ImpactPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Contributors */}
-          <Card>
+          <Card data-tour="top-contributors">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Award className="w-5 h-5 text-primary" />
