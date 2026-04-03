@@ -75,7 +75,7 @@ interface KaiosContextType {
   isLoading: boolean;
   evalSettings: EvalSettings;
   setEvalSettings: (s: EvalSettings) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "adoptedBy" | "impactScore" | "status">) => KaizenItem;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => KaizenItem;
   updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
   getPersonById: (id: string) => Person | undefined;
   getKaizenByPerson: (personId: string) => KaizenItem[];
