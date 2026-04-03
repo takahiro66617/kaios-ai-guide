@@ -27,6 +27,7 @@ import {
 import { useKaios, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import { useNavigate } from "react-router-dom";
+import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 
 const COLORS = [
   "hsl(217, 91%, 60%)",
