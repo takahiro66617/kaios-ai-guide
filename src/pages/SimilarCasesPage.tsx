@@ -8,7 +8,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const SIMILAR_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="search-bar"]', title: "① 検索テーマを入力", description: "改善したいテーマや悩みを自由に入力します。キーワードでも文章でもOK。", position: "bottom" },
+  { selector: '[data-tour="search-button"]', title: "② AI検索を実行", description: "AIがナレッジベース全体と意味的な類似度を分析し、関連する事例を推薦します。", position: "bottom" },
+  { selector: '[data-tour="knowledge-base"]', title: "③ 登録済みナレッジ", description: "登録された全改善事例が一覧表示されています。「詳細」で全情報を確認できます。", position: "top" },
+];
 import {
   Dialog,
   DialogContent,
