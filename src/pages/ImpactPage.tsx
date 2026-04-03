@@ -149,7 +149,7 @@ const ImpactPage = () => {
     filteredItems.forEach(k => {
       const existing = personMap.get(k.authorId) || { count: 0, totalScore: 0, adoptions: 0, completed: 0 };
       existing.count++;
-      existing.totalScore += calculateImpactScore(k);
+      existing.totalScore += k.impactScore;
       existing.adoptions += k.adoptedBy.length;
       if (k.status === "完了") existing.completed++;
       personMap.set(k.authorId, existing);
