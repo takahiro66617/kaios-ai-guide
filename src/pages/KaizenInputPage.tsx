@@ -70,7 +70,7 @@ const KaizenInputPage = () => {
   const [editedDraft, setEditedDraft] = useState<any | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people, getPersonById, evalSettings, calculateImpactScore } = useKaios();
+  const { addKaizenItem, kaizenItems, people, getPersonById, evalAxes, calculateImpactScore } = useKaios();
 
   useEffect(() => {
     if (people.length > 0 && !selectedPersonId) {
