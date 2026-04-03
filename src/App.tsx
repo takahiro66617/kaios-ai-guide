@@ -10,6 +10,7 @@ import KaizenInputPage from "@/pages/KaizenInputPage";
 import SimilarCasesPage from "@/pages/SimilarCasesPage";
 import ImpactPage from "@/pages/ImpactPage";
 import SettingsPage from "@/pages/SettingsPage";
+import PeopleManagementPage from "@/pages/PeopleManagementPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
