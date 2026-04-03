@@ -70,7 +70,7 @@ const KaizenInputPage = () => {
   const [editedDraft, setEditedDraft] = useState<any | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people, getPersonById, evalSettings, calculateImpactScore } = useKaios();
+  const { addKaizenItem, kaizenItems, people, getPersonById, evalAxes, calculateImpactScore } = useKaios();
 
   useEffect(() => {
     if (people.length > 0 && !selectedPersonId) {
@@ -386,7 +386,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
               {/* Eval settings context */}
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
-                現在の評価方針: Speed {evalSettings.speed}% / Cross-functional {evalSettings.crossFunctional}%
+                現在の評価方針: {evalAxes.filter(a => a.isActive).map(a => `${a.name} ${a.weight}%`).join(" / ") || "未設定"}
               </div>
 
               {/* Editable fields */}

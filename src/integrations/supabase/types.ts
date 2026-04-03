@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      eval_axes: {
+        Row: {
+          created_at: string
+          default_value: number
+          description: string
+          id: string
+          is_active: boolean
+          key: string
+          left_label: string
+          name: string
+          right_label: string
+          sort_order: number
+          tooltip: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          default_value?: number
+          description?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          left_label?: string
+          name: string
+          right_label?: string
+          sort_order?: number
+          tooltip?: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          default_value?: number
+          description?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          left_label?: string
+          name?: string
+          right_label?: string
+          sort_order?: number
+          tooltip?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       eval_settings: {
         Row: {
           cost_efficiency: number

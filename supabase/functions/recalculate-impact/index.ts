@@ -13,32 +13,23 @@ serve(async (req) => {
   }
 
   try {
-    const { speed, crossFunctional, reproducibilityWeight, costEfficiency, innovation } = await req.json();
+    const { axes } = await req.json();
 
-    if (typeof speed !== "number" || typeof crossFunctional !== "number") {
+    if (!Array.isArray(axes) || axes.length === 0) {
       return new Response(
-        JSON.stringify({ error: "speed と crossFunctional は数値で指定してください" }),
+        JSON.stringify({ error: "axes は配列で1つ以上指定してください" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const reproWeight = reproducibilityWeight ?? 50;
-    const costEff = costEfficiency ?? 50;
-    const inno = innovation ?? 50;
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: items, error: fetchError } = await supabase
-      .from("kaizen_items")
-      .select("*");
-
+    const { data: items, error: fetchError } = await supabase.from("kaizen_items").select("*");
     if (fetchError) throw new Error(`Failed to fetch items: ${fetchError.message}`);
     if (!items || items.length === 0) {
       return new Response(
@@ -48,17 +39,16 @@ serve(async (req) => {
     }
 
     const itemSummaries = items.map(item => ({
-      id: item.id,
-      title: item.title,
-      problem: item.problem,
-      solution: item.solution,
-      effect: item.effect,
-      category: item.category,
-      reproducibility: item.reproducibility,
-      department: item.department,
-      adoptedByCount: (item.adopted_by || []).length,
-      status: item.status,
+      id: item.id, title: item.title, problem: item.problem,
+      solution: item.solution, effect: item.effect, category: item.category,
+      reproducibility: item.reproducibility, department: item.department,
+      adoptedByCount: (item.adopted_by || []).length, status: item.status,
     }));
+
+    // Build dynamic axis description for AI
+    const axisDescriptions = axes.map((a: any, i: number) =>
+      `${i + 1}. ${a.name}（${a.key}）: ウェイト ${a.weight}%\n   → ${a.description || "詳細なし"}`
+    ).join("\n");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -73,60 +63,40 @@ serve(async (req) => {
             role: "system",
             content: `あなたは企業の改善活動のインパクトを評価するAIです。
 
-以下の5軸の評価ウェイトに基づいて、各改善案のインパクトスコア（0〜100）を算出してください。
+以下の評価軸とウェイトに基づいて、各改善案のインパクトスコア（0〜100）を算出してください。
 
-【評価ウェイト】
-1. 迅速な実行（Speed）: ${speed}%
-   → 高いほど、素早く実行できる改善を高評価
-2. 部門横断での有効性（Cross-functional）: ${crossFunctional}%
-   → 高いほど、他部署への波及効果や再利用性を高評価
-3. 再現性の重視（Reproducibility）: ${reproWeight}%
-   → 高いほど、標準化・横展開可能な改善を高評価
-4. コスト効率（Cost Efficiency）: ${costEff}%
-   → 高いほど、低コストで高効果の改善を高評価
-5. 革新性（Innovation）: ${inno}%
-   → 高いほど、新しいアプローチによる改善を高評価
-
-【スコア算出の考慮事項】
-- 再現性が「高」→ Reproducibilityウェイトに応じてボーナス
-- 採用部署数が多い → Cross-functionalウェイトに応じてボーナス
-- ステータスが「完了」→ Speedウェイトに応じてボーナス
-- カテゴリや効果の記述内容からもコスト効率・革新性を判断
+【評価軸】
+${axisDescriptions}
 
 各改善案のIDとスコアをJSON配列で返してください。`,
           },
-          {
-            role: "user",
-            content: JSON.stringify(itemSummaries),
-          },
+          { role: "user", content: JSON.stringify(itemSummaries) },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "set_impact_scores",
-              description: "各改善案のインパクトスコアを設定する",
-              parameters: {
-                type: "object",
-                properties: {
-                  scores: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        id: { type: "string", description: "改善案のID" },
-                        score: { type: "number", description: "インパクトスコア（0〜100）" },
-                        reason: { type: "string", description: "スコアの根拠（1文）" },
-                      },
-                      required: ["id", "score"],
+        tools: [{
+          type: "function",
+          function: {
+            name: "set_impact_scores",
+            description: "各改善案のインパクトスコアを設定する",
+            parameters: {
+              type: "object",
+              properties: {
+                scores: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string", description: "改善案のID" },
+                      score: { type: "number", description: "インパクトスコア（0〜100）" },
+                      reason: { type: "string", description: "スコアの根拠（1文）" },
                     },
+                    required: ["id", "score"],
                   },
                 },
-                required: ["scores"],
               },
+              required: ["scores"],
             },
           },
-        ],
+        }],
         tool_choice: { type: "function", function: { name: "set_impact_scores" } },
       }),
     });
@@ -139,7 +109,6 @@ serve(async (req) => {
 
     const aiData = await response.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-
     let scores: { id: string; score: number; reason?: string }[] = [];
 
     if (toolCall?.function?.arguments) {
@@ -163,32 +132,10 @@ serve(async (req) => {
       if (!error) updated++;
     }
 
-    // Save eval settings
-    const { data: existingSettings } = await supabase
-      .from("eval_settings")
-      .select("id")
-      .limit(1)
-      .single();
-
-    if (existingSettings) {
-      await supabase
-        .from("eval_settings")
-        .update({
-          speed,
-          cross_functional: crossFunctional,
-          reproducibility_weight: reproWeight,
-          cost_efficiency: costEff,
-          innovation: inno,
-          updated_by: "system",
-        })
-        .eq("id", existingSettings.id);
-    }
-
     return new Response(
       JSON.stringify({
         message: `${updated}件の改善案のスコアをAIで再計算しました`,
-        updated,
-        total: items.length,
+        updated, total: items.length,
         scores: scores.map(s => ({ id: s.id, score: s.score, reason: s.reason })),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
