@@ -57,6 +57,18 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        kaios: {
+          brand: "hsl(var(--kaios-brand))",
+          "brand-light": "hsl(var(--kaios-brand-light))",
+          "warning-bg": "hsl(var(--kaios-warning-bg))",
+          "warning-border": "hsl(var(--kaios-warning-border))",
+          "warning-text": "hsl(var(--kaios-warning-text))",
+          dark: "hsl(var(--kaios-dark))",
+          "dark-card": "hsl(var(--kaios-dark-card))",
+          "dark-border": "hsl(var(--kaios-dark-border))",
+          success: "hsl(var(--kaios-success))",
+          surface: "hsl(var(--kaios-surface))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
