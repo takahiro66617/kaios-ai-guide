@@ -310,7 +310,7 @@ const ImpactPage = () => {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-tour="charts">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">部門別 改善件数とインパクトスコア</CardTitle>
