@@ -158,7 +158,7 @@ const EvaluationSettings = () => {
               AIが改善案を評価する際の評価軸とウェイトを設定します。軸の追加・削除・有効/無効の切替が可能です。
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <UITour steps={TOUR_STEPS} tourKey="eval-settings" />
             <AlertDialog>
               <AlertDialogTrigger asChild>
