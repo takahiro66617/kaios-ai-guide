@@ -149,7 +149,7 @@ const EvaluationSettings = () => {
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
-      <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
