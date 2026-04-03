@@ -116,7 +116,7 @@ const DetailField = ({ label, value }: { label: string; value: string }) => (
 );
 
 const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProps) => {
-  const { getKaizenByPerson } = useKaios();
+  const { getKaizenByPerson, people } = useKaios();
   const navigate = useNavigate();
   const [selectedKaizen, setSelectedKaizen] = useState<KaizenItem | null>(null);
 
@@ -124,21 +124,47 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
 
   const personKaizen = getKaizenByPerson(person.id);
   const completedKaizen = personKaizen.filter(k => k.status === "完了");
+  const inProgressKaizen = personKaizen.filter(k => k.status === "実行中");
+
+  // Real: count total adoptions across all items
   const totalAdoptions = personKaizen.reduce((sum, k) => sum + k.adoptedBy.length, 0);
+
+  // Real: unique departments that adopted
   const adoptedDepts = new Set(personKaizen.flatMap(k => k.adoptedBy));
-  const months = new Set(personKaizen.map(k => k.createdAt.slice(0, 7)));
-  const continuousMonths = months.size;
+
+  // Real: calculate actual consecutive months
+  const sortedMonths = [...new Set(personKaizen.map(k => k.createdAt.slice(0, 7)))].sort();
+  let consecutiveMonths = 0;
+  if (sortedMonths.length > 0) {
+    consecutiveMonths = 1;
+    for (let i = sortedMonths.length - 1; i > 0; i--) {
+      const [y1, m1] = sortedMonths[i].split("-").map(Number);
+      const [y2, m2] = sortedMonths[i - 1].split("-").map(Number);
+      const diff = (y1 * 12 + m1) - (y2 * 12 + m2);
+      if (diff === 1) consecutiveMonths++;
+      else break;
+    }
+  }
+
+  // Real scores
   const avgScore = personKaizen.length > 0 ? Math.round(personKaizen.reduce((s, k) => s + k.impactScore, 0) / personKaizen.length) : 0;
+  const maxScore = personKaizen.length > 0 ? Math.max(...personKaizen.map(k => k.impactScore)) : 0;
+  const minScore = personKaizen.length > 0 ? Math.min(...personKaizen.map(k => k.impactScore)) : 0;
+  const completionRate = personKaizen.length > 0 ? Math.round((completedKaizen.length / personKaizen.length) * 100) : 0;
+
+  // Real: unique categories
+  const categories = new Set(personKaizen.map(k => k.category));
 
   const getInsightText = () => {
     const strengths: string[] = [];
     if (totalAdoptions >= 3) strengths.push("横断影響と再利用性");
-    if (completedKaizen.length >= 3) strengths.push("高い完了率");
-    if (continuousMonths >= 3) strengths.push("継続的な改善行動");
+    if (completedKaizen.length >= 2) strengths.push("高い完了率");
+    if (consecutiveMonths >= 2) strengths.push("継続的な改善行動");
+    if (avgScore >= 60) strengths.push("高い平均インパクトスコア");
     if (strengths.length === 0) {
-      return `${person.name.split(" ")[0]}さんは改善活動に積極的に参加しています。今後の改善案の提出と実行が期待されます。`;
+      return `${person.name}さんは改善活動に参加しています。提案数: ${personKaizen.length}件、平均スコア: ${avgScore}pt。`;
     }
-    return `${person.name.split(" ")[0]}さんは、改善案の横展開と継続的な採用実績の観点で、追加的に注目すべき人材です。既存評価とは異なる軸として、**${strengths.join("と")}**で極めて高い示唆が見られます。`;
+    return `${person.name}さんは**${strengths.join("・")}**の観点で注目すべき人材です。${personKaizen.length}件の改善案を提出し、平均スコア${avgScore}ptを記録しています。`;
   };
 
   const topKaizen = [...personKaizen].sort((a, b) => b.impactScore - a.impactScore).slice(0, 5);
@@ -170,9 +196,25 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
                   {person.department}　・　{person.role || "メンバー"}　・　入社{person.yearsAtCompany}年目
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-primary">{avgScore}<span className="text-xs text-muted-foreground font-normal">pt</span></p>
+            </div>
+
+            {/* Score Overview */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center">
+                <p className="text-2xl font-bold text-primary">{avgScore}<span className="text-xs font-normal">pt</span></p>
                 <p className="text-xs text-muted-foreground">平均スコア</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{maxScore}<span className="text-xs font-normal text-muted-foreground">pt</span></p>
+                <p className="text-xs text-muted-foreground">最高スコア</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{personKaizen.length}<span className="text-xs font-normal text-muted-foreground">件</span></p>
+                <p className="text-xs text-muted-foreground">総提案数</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{completionRate}<span className="text-xs font-normal text-muted-foreground">%</span></p>
+                <p className="text-xs text-muted-foreground">完了率</p>
               </div>
             </div>
 
@@ -180,7 +222,7 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                なぜ注目か (AIインサイト)
+                AIインサイト
               </h3>
               <Card className="bg-muted/30">
                 <CardContent className="p-4">
@@ -192,11 +234,11 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
                 </CardContent>
               </Card>
 
-              {/* Stats */}
+              {/* Real Stats */}
               <div className="grid grid-cols-3 gap-3">
-                <StatCard color="text-primary" label="他部署採用回数" value={`${totalAdoptions}回`} sub="/ 過去半年" description="提案が複数部門で再利用されている" />
-                <StatCard color="text-kaios-success" label="対象範囲" value={`${adoptedDepts.size}部門`} sub="" description="横断性が確認できる" />
-                <StatCard color="text-primary" label="継続改善" value={`${continuousMonths}か月連続`} sub="" description="継続的な改善行動" />
+                <StatCard color="text-primary" label="他部署採用数" value={`${totalAdoptions}回`} sub={totalAdoptions > 0 ? `${adoptedDepts.size}部門で採用` : ""} description={totalAdoptions > 0 ? `採用先: ${[...adoptedDepts].slice(0, 3).join(", ")}${adoptedDepts.size > 3 ? " 他" : ""}` : "まだ他部署での採用なし"} />
+                <StatCard color="text-kaios-success" label="カテゴリ範囲" value={`${categories.size}種類`} sub="" description={[...categories].slice(0, 3).join("・") || "—"} />
+                <StatCard color="text-primary" label="継続改善" value={`${consecutiveMonths}か月`} sub={consecutiveMonths > 0 ? "連続提案" : ""} description={`全${sortedMonths.length}か月に提案あり（完了${completedKaizen.length}件・実行中${inProgressKaizen.length}件）`} />
               </div>
             </div>
 
@@ -205,7 +247,7 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <BookmarkPlus className="w-4 h-4 text-primary" />
-                  根拠事例 (トップ改善案)
+                  改善案一覧（スコア順）
                 </h3>
                 <button
                   onClick={() => { handleOpenChange(false); navigate("/similar-cases"); }}
@@ -224,12 +266,16 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">{k.createdAt.slice(0, 7).replace("-", "年")}月</Badge>
-                            <span>採用部署: {k.adoptedBy.length > 0 ? k.adoptedBy.join(", ") : "なし"}</span>
+                            <Badge variant={k.status === "完了" ? "default" : "outline"} className="text-xs">{k.status}</Badge>
+                            <span>{k.department}</span>
+                            <span>{k.createdAt}</span>
+                            {k.adoptedBy.length > 0 && <span>採用: {k.adoptedBy.length}部署</span>}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-lg font-bold ${scoreColor}`}>{k.impactScore}<span className="text-xs font-normal text-muted-foreground">pt</span></span>
+                          <div className="text-right">
+                            <span className={`text-lg font-bold ${scoreColor}`}>{k.impactScore}<span className="text-xs font-normal text-muted-foreground">pt</span></span>
+                          </div>
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </div>
