@@ -189,7 +189,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
         </div>
 
         {/* Person Selector - always visible */}
-        <Card>
+        <Card data-tour="person-selector">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <User className="w-4 h-4 text-muted-foreground" />
