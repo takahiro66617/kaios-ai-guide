@@ -100,7 +100,25 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   const [people, setPeople] = useState<Person[]>([]);
   const [kaizenItems, setKaizenItems] = useState<KaizenItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [evalSettings, setEvalSettings] = useState<EvalSettings>({ speed: 70, crossFunctional: 85 });
+  const [evalSettings, setEvalSettings] = useState<EvalSettings>({ speed: 50, crossFunctional: 50 });
+
+  const refreshEvalSettings = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("eval_settings")
+        .select("*")
+        .limit(1)
+        .single();
+      if (!error && data) {
+        setEvalSettings({
+          speed: (data as any).speed ?? 50,
+          crossFunctional: (data as any).cross_functional ?? 50,
+        });
+      }
+    } catch (e) {
+      console.error("Error loading eval settings:", e);
+    }
+  }, []);
 
   const refreshPeople = useCallback(async () => {
     try {
@@ -144,8 +162,8 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    Promise.all([refreshPeople(), refreshItems()]);
-  }, [refreshPeople, refreshItems]);
+    Promise.all([refreshPeople(), refreshItems(), refreshEvalSettings()]);
+  }, [refreshPeople, refreshItems, refreshEvalSettings]);
 
   const calculateImpactScore = useCallback((item: KaizenItem) => {
     const baseScore = 50;
