@@ -84,18 +84,20 @@ const testCases = [
 ];
 
 const EvaluationSettings = () => {
-  const [speed, setSpeed] = useState(70);
-  const [crossFunctional, setCrossFunctional] = useState(85);
-  const [savedSpeed, setSavedSpeed] = useState(70);
-  const [savedCross, setSavedCross] = useState(85);
+  const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore } = useKaios();
+  const [speed, setSpeed] = useState(evalSettings.speed);
+  const [crossFunctional, setCrossFunctional] = useState(evalSettings.crossFunctional);
+  const [savedSpeed, setSavedSpeed] = useState(evalSettings.speed);
+  const [savedCross, setSavedCross] = useState(evalSettings.crossFunctional);
 
   const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
 
   const handleSave = () => {
     setSavedSpeed(speed);
     setSavedCross(crossFunctional);
+    setEvalSettings({ speed, crossFunctional });
     toast.success("設定を保存しました", {
-      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}%`,
+      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}% — 全${kaizenItems.length}件の改善案のスコアが再計算されます`,
     });
   };
 
