@@ -122,7 +122,7 @@ const SimilarCasesPage = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex gap-3">
-              <div className="relative flex-1">
+              <div className="relative flex-1" data-tour="search-bar">
                 <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                 <Input
                   value={query}
