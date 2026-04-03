@@ -206,6 +206,30 @@ const EvaluationSettings = () => {
           </p>
         </div>
 
+        {/* Score Impact Preview - shows when settings changed */}
+        {hasChanges && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      スコア変動プレビュー: {itemsWithChanges.length}件 / {kaizenItems.length}件 のスコアが変動
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      平均スコア変動: <span className={avgDiff > 0 ? "text-kaios-success font-bold" : avgDiff < 0 ? "text-destructive font-bold" : ""}>
+                        {avgDiff > 0 ? "+" : ""}{avgDiff}pt
+                      </span>
+                      {" "}— 保存するとインパクト見える化に即時反映されます
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: Weight Settings */}
