@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
+import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 import {
   Select,
   SelectContent,
