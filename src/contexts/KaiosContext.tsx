@@ -109,7 +109,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   const [people, setPeople] = useState<Person[]>([]);
   const [kaizenItems, setKaizenItems] = useState<KaizenItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [evalSettings, setEvalSettings] = useState<EvalSettings>({ speed: 50, crossFunctional: 50 });
+  const [evalSettings, setEvalSettings] = useState<EvalSettings>({ speed: 50, crossFunctional: 50, reproducibilityWeight: 50, costEfficiency: 50, innovation: 50 });
 
   const refreshEvalSettings = useCallback(async () => {
     try {
