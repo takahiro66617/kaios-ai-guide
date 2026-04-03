@@ -122,6 +122,9 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         setEvalSettings({
           speed: (data as any).speed ?? 50,
           crossFunctional: (data as any).cross_functional ?? 50,
+          reproducibilityWeight: (data as any).reproducibility_weight ?? 50,
+          costEfficiency: (data as any).cost_efficiency ?? 50,
+          innovation: (data as any).innovation ?? 50,
         });
       }
     } catch (e) {
