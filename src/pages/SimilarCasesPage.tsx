@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, ChevronRight, User } from "lucide-react";
+import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, User, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import {
@@ -13,32 +15,71 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface RankedItem extends KaizenItem {
+  similarity: number;
+  reason: string;
+}
+
 const SimilarCasesPage = () => {
-  const { kaizenItems, getPersonById, evalSettings } = useKaios();
+  const { kaizenItems, getPersonById } = useKaios();
   const [query, setQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [results, setResults] = useState<RankedItem[]>([]);
+  const [searchSummary, setSearchSummary] = useState("");
   const [searched, setSearched] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<KaizenItem | null>(null);
 
-  const calculateSimilarity = (item: KaizenItem, q: string): number => {
-    if (!q) return item.impactScore;
-    const text = `${item.title} ${item.problem} ${item.solution} ${item.effect} ${item.tags.join(" ")} ${item.category} ${item.department}`.toLowerCase();
-    const terms = q.toLowerCase().split(/\s+/);
-    let matches = 0;
-    terms.forEach(t => { if (text.includes(t)) matches++; });
-    const matchRatio = terms.length > 0 ? matches / terms.length : 0;
-    return Math.min(100, Math.round(matchRatio * 60 + item.impactScore * 0.4));
+  const handleSearch = async () => {
+    const q = query.trim();
+    if (!q) { toast.error("検索クエリを入力してください"); return; }
+
+    setIsSearching(true);
+    setResults([]);
+    setSearchSummary("");
+    setSearched(true);
+
+    try {
+      // Send items summary to AI for semantic ranking
+      const itemsForAI = kaizenItems.map(item => ({
+        title: item.title,
+        problem: item.problem,
+        solution: item.solution,
+        effect: item.effect,
+        category: item.category,
+        department: item.department,
+        tags: item.tags,
+      }));
+
+      const { data, error } = await supabase.functions.invoke("search-similar", {
+        body: { query: q, items: itemsForAI },
+      });
+
+      if (error) throw new Error(error.message || "AI検索に失敗しました");
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.rankings) {
+        const ranked: RankedItem[] = data.rankings
+          .filter((r: any) => r.similarity > 20 && r.index >= 0 && r.index < kaizenItems.length)
+          .sort((a: any, b: any) => b.similarity - a.similarity)
+          .map((r: any) => ({
+            ...kaizenItems[r.index],
+            similarity: r.similarity,
+            reason: r.reason,
+          }));
+
+        setResults(ranked);
+        setSearchSummary(data.summary || "");
+        toast.success(`AIが${ranked.length}件の類似事例を見つけました`);
+      }
+    } catch (e: any) {
+      console.error("Search error:", e);
+      toast.error(e.message || "AI検索中にエラーが発生しました");
+    } finally {
+      setIsSearching(false);
+    }
   };
-
-  const results = searched
-    ? kaizenItems
-        .map(item => ({ ...item, similarity: calculateSimilarity(item, query) }))
-        .filter(item => item.similarity > 30)
-        .sort((a, b) => b.similarity - a.similarity)
-    : [];
-
-  const handleSearch = () => setSearched(true);
 
   const getSimilarityColor = (v: number) => {
     if (v >= 80) return "bg-kaios-success/10 text-kaios-success border-kaios-success/20";
@@ -63,7 +104,7 @@ const SimilarCasesPage = () => {
             類似事例を探す
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            ナレッジベースに登録された改善事例からAIが類似度を計算し、参考になる事例を推薦します。
+            ナレッジベースに登録された改善事例からAIが意味的な類似度を分析し、参考になる事例を推薦します。
             <span className="text-primary ml-1">現在 {kaizenItems.length}件</span> の事例が登録されています。
           </p>
         </div>
@@ -76,25 +117,46 @@ const SimilarCasesPage = () => {
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder="改善したいテーマやキーワードを入力（例：自動化、テンプレート、属人化解消...）"
+                  onKeyDown={(e) => e.key === "Enter" && !isSearching && handleSearch()}
+                  placeholder="改善したいテーマや悩みを自由に入力（例：作業が属人化している、手作業が多い、情報が散在...）"
                   className="pl-9"
+                  disabled={isSearching}
                 />
               </div>
-              <Button onClick={handleSearch} className="gap-1.5">
-                <Search className="w-4 h-4" />
-                検索
+              <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="gap-1.5">
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                AI検索
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {searched && (
-          <div className="space-y-3">
+        {isSearching && (
+          <div className="text-center py-12">
+            <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">AIがナレッジベースから類似事例を分析中...</p>
+          </div>
+        )}
+
+        {searched && !isSearching && (
+          <div className="space-y-4">
+            {searchSummary && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <MessageSquare className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-primary mb-1">AIサマリー</p>
+                    <p className="text-sm text-foreground">{searchSummary}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <p className="text-sm text-muted-foreground">
               {results.length}件の類似事例が見つかりました
               {query && <span className="text-primary ml-1">「{query}」</span>}
             </p>
+
             {results.map((item) => {
               const author = getPersonById(item.authorId);
               return (
@@ -109,6 +171,7 @@ const SimilarCasesPage = () => {
                           </Badge>
                           <Badge variant="secondary" className="text-xs">{item.status}</Badge>
                         </div>
+                        <p className="text-sm text-primary/80 mb-1 italic">💡 {item.reason}</p>
                         <p className="text-sm text-muted-foreground line-clamp-2">{item.solution}</p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1"><Tag className="w-3 h-3" />{item.category}</span>
@@ -139,14 +202,20 @@ const SimilarCasesPage = () => {
                 </Card>
               );
             })}
+
+            {results.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">関連する事例が見つかりませんでした。別のキーワードでお試しください。</p>
+              </div>
+            )}
           </div>
         )}
 
         {!searched && (
           <div className="text-center py-16 text-muted-foreground">
             <FileText className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p className="text-lg font-medium mb-1">キーワードを入力して検索</p>
-            <p className="text-sm">ナレッジベースからAIが類似事例を自動で探し出します。</p>
+            <p className="text-lg font-medium mb-1">テーマや悩みを入力してAI検索</p>
+            <p className="text-sm">AIが意味的に類似する事例を自動で探し出し、なぜ参考になるかを説明します。</p>
           </div>
         )}
       </div>
