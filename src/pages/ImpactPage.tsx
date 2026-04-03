@@ -174,7 +174,7 @@ const ImpactPage = () => {
         return b!.score - a!.score;
       })
       .slice(0, 8) as { person: Person; count: number; score: number; adoptions: number; completed: number }[];
-  }, [filteredItems, people, calculateImpactScore, sortBy]);
+  }, [filteredItems, people, sortBy]);
 
   // High impact items
   const highImpactItems = useMemo(() => {
