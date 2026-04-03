@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useKaios, type Person } from "@/contexts/KaiosContext";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const PEOPLE_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="add-person"]', title: "① 提案者を追加", description: "名前・部門・役職・入社年数を入力して新しいメンバーを登録します。登録後、改善入力ページで選択可能になります。", position: "bottom" },
+  { selector: '[data-tour="stats"]', title: "② 統計概要", description: "登録者数、所属部門数、平均勤続年数が一目で確認できます。", position: "bottom" },
+  { selector: '[data-tour="people-list"]', title: "③ 提案者一覧", description: "登録済みメンバーの一覧です。鉛筆アイコンで編集、ゴミ箱アイコンで削除できます。", position: "top" },
+];
 import {
   Dialog,
   DialogContent,
