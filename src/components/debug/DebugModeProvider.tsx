@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 
 interface LogEntry {
   timestamp: string;
-  level: string;
-  message: string;
+  level?: string;
+  message?: string;
   stack?: string;
   action?: string;
   target?: string;
