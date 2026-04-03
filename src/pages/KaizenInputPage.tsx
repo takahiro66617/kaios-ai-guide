@@ -218,7 +218,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
         {/* ===== STEP 1: 最小十分入力 ===== */}
         {step === 1 && (
-          <Card>
+          <Card data-tour="step1-form">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-primary" />
