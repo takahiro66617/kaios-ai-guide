@@ -64,13 +64,6 @@ interface HistoryEntry {
   cross: number;
 }
 
-const mockHistory: HistoryEntry[] = [
-  { date: "2026-04-03 10:30", user: "山田 太郎", speed: 70, cross: 85 },
-  { date: "2026-03-28 14:15", user: "佐藤 花子", speed: 60, cross: 75 },
-  { date: "2026-03-15 09:00", user: "山田 太郎", speed: 50, cross: 50 },
-  { date: "2026-03-01 11:45", user: "鈴木 一郎", speed: 40, cross: 60 },
-];
-
 
 const EvaluationSettings = () => {
   const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore, refreshItems } = useKaios();
@@ -79,6 +72,31 @@ const EvaluationSettings = () => {
   const [savedSpeed, setSavedSpeed] = useState(evalSettings.speed);
   const [savedCross, setSavedCross] = useState(evalSettings.crossFunctional);
   const [isSaving, setIsSaving] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("eval_settings_history")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (!error && data) {
+        setHistory((data as any[]).map(row => ({
+          date: new Date(row.created_at).toLocaleString("ja-JP"),
+          user: row.updated_by || "システム",
+          speed: row.speed,
+          cross: row.cross_functional,
+        })));
+      }
+    } catch (e) {
+      console.error("Error fetching history:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
 
