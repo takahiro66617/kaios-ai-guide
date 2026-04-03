@@ -124,7 +124,7 @@ const ImpactPage = () => {
     filteredItems.forEach(k => {
       const existing = deptMap.get(k.department) || { count: 0, totalImpact: 0 };
       existing.count++;
-      existing.totalImpact += calculateImpactScore(k);
+      existing.totalImpact += k.impactScore;
       deptMap.set(k.department, existing);
     });
     return Array.from(deptMap.entries()).map(([name, data]) => ({
