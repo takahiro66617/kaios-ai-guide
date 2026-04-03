@@ -74,8 +74,11 @@ export type Database = {
           created_at: string
           department: string
           effect: string
+          frequency: string
           id: string
           impact_score: number
+          numerical_evidence: string
+          occurrence_place: string
           problem: string
           reproducibility: string
           solution: string
@@ -92,8 +95,11 @@ export type Database = {
           created_at?: string
           department: string
           effect: string
+          frequency?: string
           id?: string
           impact_score?: number
+          numerical_evidence?: string
+          occurrence_place?: string
           problem: string
           reproducibility?: string
           solution: string
@@ -110,8 +116,11 @@ export type Database = {
           created_at?: string
           department?: string
           effect?: string
+          frequency?: string
           id?: string
           impact_score?: number
+          numerical_evidence?: string
+          occurrence_place?: string
           problem?: string
           reproducibility?: string
           solution?: string
