@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { speed, crossFunctional } = await req.json();
+    const { speed, crossFunctional, reproducibilityWeight, costEfficiency, innovation } = await req.json();
 
     if (typeof speed !== "number" || typeof crossFunctional !== "number") {
       return new Response(
@@ -21,6 +21,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const reproWeight = reproducibilityWeight ?? 50;
+    const costEff = costEfficiency ?? 50;
+    const inno = innovation ?? 50;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -31,7 +35,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all kaizen items
     const { data: items, error: fetchError } = await supabase
       .from("kaizen_items")
       .select("*");
@@ -44,7 +47,6 @@ serve(async (req) => {
       );
     }
 
-    // Prepare item summaries for AI
     const itemSummaries = items.map(item => ({
       id: item.id,
       title: item.title,
@@ -58,7 +60,6 @@ serve(async (req) => {
       status: item.status,
     }));
 
-    // Call AI to evaluate scores based on current weights
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -72,19 +73,25 @@ serve(async (req) => {
             role: "system",
             content: `あなたは企業の改善活動のインパクトを評価するAIです。
 
-以下の評価方針に基づいて、各改善案のインパクトスコア（0〜100）を算出してください。
+以下の5軸の評価ウェイトに基づいて、各改善案のインパクトスコア（0〜100）を算出してください。
 
-【評価方針】
-- 迅速な実行（Speed）の重視度: ${speed}%
-  → 高いほど、素早く実行できる改善や短いPDCAサイクルの提案を高評価
-- 部門横断での有効性（Cross-functional）の重視度: ${crossFunctional}%
-  → 高いほど、他部署への波及効果や再利用性のある改善を高評価
+【評価ウェイト】
+1. 迅速な実行（Speed）: ${speed}%
+   → 高いほど、素早く実行できる改善を高評価
+2. 部門横断での有効性（Cross-functional）: ${crossFunctional}%
+   → 高いほど、他部署への波及効果や再利用性を高評価
+3. 再現性の重視（Reproducibility）: ${reproWeight}%
+   → 高いほど、標準化・横展開可能な改善を高評価
+4. コスト効率（Cost Efficiency）: ${costEff}%
+   → 高いほど、低コストで高効果の改善を高評価
+5. 革新性（Innovation）: ${inno}%
+   → 高いほど、新しいアプローチによる改善を高評価
 
 【スコア算出の考慮事項】
-- 再現性が「高」→ 他部署展開しやすいので、crossFunctionalが高いとボーナス
-- 採用部署数（adoptedByCount）が多い → crossFunctionalのウェイトに応じてボーナス
-- ステータスが「完了」→ 実行力の証明としてspeedウェイトに応じてボーナス
-- カテゴリや効果の記述内容からも総合的に判断
+- 再現性が「高」→ Reproducibilityウェイトに応じてボーナス
+- 採用部署数が多い → Cross-functionalウェイトに応じてボーナス
+- ステータスが「完了」→ Speedウェイトに応じてボーナス
+- カテゴリや効果の記述内容からもコスト効率・革新性を判断
 
 各改善案のIDとスコアをJSON配列で返してください。`,
           },
@@ -139,7 +146,6 @@ serve(async (req) => {
       const parsed = JSON.parse(toolCall.function.arguments);
       scores = parsed.scores || [];
     } else {
-      // Fallback: parse content
       const content = aiData.choices?.[0]?.message?.content;
       if (content) {
         const parsed = JSON.parse(content);
@@ -147,7 +153,6 @@ serve(async (req) => {
       }
     }
 
-    // Update each item's impact_score in DB
     let updated = 0;
     for (const s of scores) {
       const clampedScore = Math.max(0, Math.min(100, Math.round(s.score)));
@@ -168,7 +173,14 @@ serve(async (req) => {
     if (existingSettings) {
       await supabase
         .from("eval_settings")
-        .update({ speed, cross_functional: crossFunctional, updated_by: "system" })
+        .update({
+          speed,
+          cross_functional: crossFunctional,
+          reproducibility_weight: reproWeight,
+          cost_efficiency: costEff,
+          innovation: inno,
+          updated_by: "system",
+        })
         .eq("id", existingSettings.id);
     }
 

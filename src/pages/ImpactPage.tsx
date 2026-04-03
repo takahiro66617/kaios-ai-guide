@@ -27,7 +27,15 @@ import {
 import { useKaios, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import { useNavigate } from "react-router-dom";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const IMPACT_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="eval-banner"]', title: "① 評価方針バナー", description: "現在のAI評価ウェイト（5軸）が表示されています。「評価方針を変更」でウェイトを調整できます。", position: "bottom" },
+  { selector: '[data-tour="filter-bar"]', title: "② フィルター", description: "部門、期間、ステータス、ソートで表示データを絞り込めます。全てのグラフ・統計が連動します。", position: "bottom" },
+  { selector: '[data-tour="kpi-cards"]', title: "③ KPI概要", description: "総改善案数、平均スコア、参加部門数、完了率が一目で確認できます。", position: "bottom" },
+  { selector: '[data-tour="charts"]', title: "④ グラフ分析", description: "部門別の改善件数・スコアの棒グラフ、カテゴリ分布の円グラフで傾向を把握します。", position: "top" },
+  { selector: '[data-tour="top-contributors"]', title: "⑤ トップ貢献者", description: "スコアの高い改善案を出している人物のランキング。クリックで詳細確認できます。", position: "right" },
+];
 
 const COLORS = [
   "hsl(217, 91%, 60%)",
@@ -202,31 +210,16 @@ const ImpactPage = () => {
               改善活動が組織に与えるインパクトをリアルタイムで可視化します。
             </p>
           </div>
-          <PageHelpGuide
-            title="インパクトの見える化 — 使い方"
-            overview="登録された改善案のインパクトスコア、部門別統計、トップ貢献者などを多角的に可視化するダッシュボードです。評価方針設定で保存したウェイトに基づいてAIがスコアを算出しています。"
-            steps={[
-              { icon: "📊", title: "KPI概要を確認", description: "ページ上部に総改善案数、平均インパクトスコア、参加部門数、完了率が表示されます。", result: "組織全体の改善活動の健全性が一目で把握できます" },
-              { icon: "🔍", title: "フィルタで絞り込み", description: "部門、期間、ステータス、ソート順で表示データを絞り込めます。特定部門や期間の分析に便利です。", result: "フィルタに連動してすべてのグラフ・統計が再計算されます" },
-              { icon: "📈", title: "グラフで傾向を把握", description: "部門別の改善件数・平均スコアの棒グラフ、カテゴリ分布の円グラフで全体傾向を分析します。" },
-              { icon: "🏆", title: "トップ貢献者を確認", description: "スコアの高い改善案を多く出している人物をランキング表示。クリックすると詳細が見られます。", result: "1on1のテーマや評価材料として活用できます" },
-              { icon: "⭐", title: "高インパクト改善案を確認", description: "スコア上位の改善案を一覧表示。「すべて見る」で類似事例検索ページへ遷移します。" },
-            ]}
-            tips={[
-              "スコアは「評価方針設定」ページのウェイトに基づいてAIが算出しています。方針を変更して保存すると全件再計算されます。",
-              "改善案が0件の場合はデータが表示されません。まず「改善入力と整理」から改善案を登録してください。",
-              "トップ貢献者をクリックすると、その人の改善活動の詳細とAIインサイトが確認できます。",
-            ]}
-          />
+          <UITour steps={IMPACT_TOUR_STEPS} tourKey="impact" />
         </div>
 
         {/* Eval Settings Banner */}
-        <div className="flex items-center justify-between p-4 rounded-lg border bg-primary/5 border-primary/20">
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-primary/5 border-primary/20" data-tour="eval-banner">
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-primary shrink-0" />
             <div>
               <p className="text-sm font-medium text-foreground">
-                現在の評価方針: <span className="text-primary">Speed {evalSettings.speed}%</span> / <span className="text-primary">Cross-functional {evalSettings.crossFunctional}%</span>
+                現在の評価方針: <span className="text-primary">Speed {evalSettings.speed}%</span> / <span className="text-primary">Cross {evalSettings.crossFunctional}%</span> / <span className="text-primary">再現性 {evalSettings.reproducibilityWeight}%</span> / <span className="text-primary">コスト効率 {evalSettings.costEfficiency}%</span> / <span className="text-primary">革新性 {evalSettings.innovation}%</span>
               </p>
               <p className="text-xs text-muted-foreground">
                 全{kaizenItems.length}件の改善案のインパクトスコアがこの方針に基づいて算出されています
@@ -243,7 +236,7 @@ const ImpactPage = () => {
         </div>
 
         {/* Filter Bar */}
-        <Card>
+        <Card data-tour="filter-bar">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -309,7 +302,7 @@ const ImpactPage = () => {
         </Card>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-tour="kpi-cards">
           <KpiCard icon={Zap} label="総改善案数" value={String(totalItems)} sub={`+${thisMonthItems} 今月`} />
           <KpiCard icon={TrendingUp} label="平均インパクトスコア" value={`${avgImpact}%`} sub="評価方針に連動" />
           <KpiCard icon={Users} label="参加部門数" value={`${activeDepts.size}部門`} sub={`${people.length}名登録`} />
@@ -317,7 +310,7 @@ const ImpactPage = () => {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-tour="charts">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">部門別 改善件数とインパクトスコア</CardTitle>
@@ -375,7 +368,7 @@ const ImpactPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Contributors */}
-          <Card>
+          <Card data-tour="top-contributors">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Award className="w-5 h-5 text-primary" />

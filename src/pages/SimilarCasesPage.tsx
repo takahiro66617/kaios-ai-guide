@@ -8,7 +8,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const SIMILAR_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="search-bar"]', title: "① 検索テーマを入力", description: "改善したいテーマや悩みを自由に入力します。キーワードでも文章でもOK。", position: "bottom" },
+  { selector: '[data-tour="search-button"]', title: "② AI検索を実行", description: "AIがナレッジベース全体と意味的な類似度を分析し、関連する事例を推薦します。", position: "bottom" },
+  { selector: '[data-tour="knowledge-base"]', title: "③ 登録済みナレッジ", description: "登録された全改善事例が一覧表示されています。「詳細」で全情報を確認できます。", position: "top" },
+];
 import {
   Dialog,
   DialogContent,
@@ -110,27 +116,13 @@ const SimilarCasesPage = () => {
               <span className="text-primary ml-1">現在 {kaizenItems.length}件</span> の事例が登録されています。
             </p>
           </div>
-          <PageHelpGuide
-            title="類似事例を探す — 使い方"
-            overview="ナレッジベースに蓄積された改善事例の中から、AIが意味的に類似する事例を検索・推薦します。過去の知見を活用して新しい改善に活かせます。"
-            steps={[
-              { icon: "🔍", title: "テーマや悩みを入力", description: "検索バーに改善したいテーマ（例：「作業の属人化」「手作業が多い」）を自由に入力します。キーワードでも文章でもOK。" },
-              { icon: "🤖", title: "AI検索を実行", description: "「AI検索」ボタンを押すと、AIがナレッジベース全体の事例と意味的な類似度を分析します。", result: "類似度スコアと「なぜ参考になるか」の理由が各事例に表示されます" },
-              { icon: "📋", title: "結果を確認", description: "類似度の高い順に事例が表示されます。AIサマリーで全体の傾向も確認できます。" },
-              { icon: "📖", title: "詳細を見る", description: "各事例の「詳細を見る」で課題・原因・解決策・効果の全情報を確認できます。提案者名をクリックすると提案者詳細も確認可能。" },
-            ]}
-            tips={[
-              "検索はナレッジベースに登録済みの改善案が対象です。先に「改善入力と整理」から改善案を登録してください。",
-              "類似度80%以上は非常に関連性が高い事例です。",
-              "Enterキーでも検索を実行できます。",
-            ]}
-          />
+          <UITour steps={SIMILAR_TOUR_STEPS} tourKey="similar-cases" />
         </div>
 
         <Card>
           <CardContent className="p-6">
             <div className="flex gap-3">
-              <div className="relative flex-1">
+              <div className="relative flex-1" data-tour="search-bar">
                 <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                 <Input
                   value={query}
@@ -141,7 +133,7 @@ const SimilarCasesPage = () => {
                   disabled={isSearching}
                 />
               </div>
-              <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="gap-1.5">
+              <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="gap-1.5" data-tour="search-button">
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 AI検索
               </Button>
@@ -231,7 +223,7 @@ const SimilarCasesPage = () => {
 
         {/* Knowledge Base - always visible */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between" data-tour="knowledge-base">
             <h2 className="text-base font-bold text-foreground flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               登録済みナレッジベース

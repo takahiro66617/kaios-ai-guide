@@ -10,7 +10,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const KAIZEN_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="person-selector"]', title: "① 提案者を選択", description: "改善案の提案者を選択します。提案者は事前に「提案者管理」ページで登録が必要です。", position: "bottom" },
+  { selector: '[data-tour="step1-form"]', title: "② 必須項目を入力", description: "問題の内容・発生場所・影響・頻度・原因仮説・改善案の方向・期待効果の7項目を入力します。", position: "bottom" },
+  { selector: '[data-tour="generate-button"]', title: "③ AIドラフトを生成", description: "入力内容をもとにAIが構造化された改善シートを自動生成します。その後、差分だけ修正して確定します。", position: "top" },
+  { selector: '[data-tour="recent-items"]', title: "④ 最近の登録", description: "直近に登録した改善案が表示されます。登録後はインパクトの見える化にも反映されます。", position: "top" },
+];
 import {
   Select,
   SelectContent,
@@ -162,21 +169,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
               4ステップで改善案を効率的に登録。AIが構造化ドラフトを生成し、ズレだけ修正すれば完了です。
             </p>
           </div>
-          <PageHelpGuide
-            title="改善入力と整理 — 使い方"
-            overview="4ステップのウィザードで改善案を登録します。最小限の入力→AIドラフト生成→差分修正→確定の流れで、効率的にナレッジ資産を蓄積します。"
-            steps={[
-              { icon: "1️⃣", title: "Step1: 最小十分入力", description: "必須7項目（問題の内容・発生場所・影響・頻度・原因仮説・改善案の方向・期待効果）と任意3項目を入力します。", result: "AIが意味を外さず補助できるレベルの情報を最短で入力" },
-              { icon: "2️⃣", title: "Step2: AIドラフト生成", description: "入力内容をもとに、AIが構造化された改善シート案（タイトル・課題・原因・解決策・効果・関連部署・タグ等）を自動生成します。", result: "ゼロから書く手間をなくし、AIが構造化を代行" },
-              { icon: "3️⃣", title: "Step3: 差分修正", description: "AIドラフトの内容を確認し、ズレている箇所だけ修正します。各フィールドは直接編集可能です。", result: "全てを書き直す必要なく、微修正だけで完成度の高い改善シートに" },
-              { icon: "4️⃣", title: "Step4: 確定・蓄積", description: "修正後の改善案をナレッジベースに登録。インパクトスコアが自動算出され、見える化ページに即反映されます。", result: "組織のナレッジ資産として蓄積・活用可能に" },
-            ]}
-            tips={[
-              "提案者は事前に「提案者管理」ページで登録が必要です。",
-              "関係部署・添付資料・数値根拠は任意ですが、入力するとAIの精度が上がります。",
-              "AIが検出した関連部署はインパクトスコアの横断性評価に反映されます。",
-            ]}
-          />
+          <UITour steps={KAIZEN_TOUR_STEPS} tourKey="kaizen-input" />
         </div>
 
         {/* Step Indicator */}
@@ -196,7 +189,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
         </div>
 
         {/* Person Selector - always visible */}
-        <Card>
+        <Card data-tour="person-selector">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <User className="w-4 h-4 text-muted-foreground" />
@@ -225,7 +218,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
         {/* ===== STEP 1: 最小十分入力 ===== */}
         {step === 1 && (
-          <Card>
+          <Card data-tour="step1-form">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-primary" />
@@ -328,7 +321,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-2" data-tour="generate-button">
                 <Button onClick={handleGenerateDraft} disabled={!isStep1Valid() || isProcessing} className="gap-2">
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   AIドラフトを生成する
@@ -487,7 +480,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
         {/* Recent items - visible on step 1 and 4 */}
         {(step === 1 || step === 4) && recentItems.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-3" data-tour="recent-items">
             <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
             {recentItems.map((item) => {
               const author = getPersonById(item.authorId);
