@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      eval_settings: {
+        Row: {
+          created_at: string
+          cross_functional: number
+          id: string
+          speed: number
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          created_at?: string
+          cross_functional?: number
+          id?: string
+          speed?: number
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          created_at?: string
+          cross_functional?: number
+          id?: string
+          speed?: number
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       kaizen_items: {
         Row: {
           adopted_by: string[]
