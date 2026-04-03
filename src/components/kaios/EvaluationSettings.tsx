@@ -215,9 +215,9 @@ const EvaluationSettings = () => {
               </DialogContent>
             </Dialog>
 
-            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges}>
-              <Save className="w-4 h-4" />
-              設定を保存
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSaving ? "AI再計算中..." : "設定を保存"}
             </Button>
           </div>
         </div>
