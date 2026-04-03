@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Save, Search, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, Save, Search, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const EXAMPLE_INPUT = "営業資料の最新版を探すのが手間だったので、全資料を社内Wikiにまとめた";
 
@@ -16,8 +23,9 @@ const KaizenInputPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState("p1");
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems } = useKaios();
+  const { addKaizenItem, kaizenItems, people, getPersonById } = useKaios();
 
   const handleStructure = async () => {
     const text = inputText.trim();
@@ -56,7 +64,7 @@ const KaizenInputPage = () => {
       category: result.category,
       reproducibility: result.reproducibility || "中",
       tags: result.tags || [],
-      authorId: "p1", // current user (山田太郎 → using p1 as default for demo)
+      authorId: selectedPersonId,
     });
     toast.success("ナレッジベースに登録しました", {
       description: `「${newItem.title}」が全社のナレッジとして共有されます`,
@@ -105,9 +113,31 @@ const KaizenInputPage = () => {
           </div>
         </div>
 
-        {/* Input Area */}
+        {/* Person Selector + Input Area */}
         <Card>
           <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">提案者:</span>
+              <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
+                <SelectTrigger className="w-[260px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {people.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}（{p.department}）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(() => {
+                const person = getPersonById(selectedPersonId);
+                return person ? (
+                  <span className="text-xs text-muted-foreground">{person.role} ・ 入社{person.yearsAtCompany}年目</span>
+                ) : null;
+              })()}
+            </div>
             <Textarea
               placeholder="気づいた改善、試した工夫、業務で変えたことを自由に入力してください..."
               value={inputText}
