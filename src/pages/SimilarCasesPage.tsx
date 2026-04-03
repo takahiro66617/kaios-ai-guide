@@ -99,15 +99,32 @@ const SimilarCasesPage = () => {
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Search className="w-6 h-6 text-primary" />
-            類似事例を探す
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            ナレッジベースに登録された改善事例からAIが意味的な類似度を分析し、参考になる事例を推薦します。
-            <span className="text-primary ml-1">現在 {kaizenItems.length}件</span> の事例が登録されています。
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Search className="w-6 h-6 text-primary" />
+              類似事例を探す
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              ナレッジベースに登録された改善事例からAIが意味的な類似度を分析し、参考になる事例を推薦します。
+              <span className="text-primary ml-1">現在 {kaizenItems.length}件</span> の事例が登録されています。
+            </p>
+          </div>
+          <PageHelpGuide
+            title="類似事例を探す — 使い方"
+            overview="ナレッジベースに蓄積された改善事例の中から、AIが意味的に類似する事例を検索・推薦します。過去の知見を活用して新しい改善に活かせます。"
+            steps={[
+              { icon: "🔍", title: "テーマや悩みを入力", description: "検索バーに改善したいテーマ（例：「作業の属人化」「手作業が多い」）を自由に入力します。キーワードでも文章でもOK。" },
+              { icon: "🤖", title: "AI検索を実行", description: "「AI検索」ボタンを押すと、AIがナレッジベース全体の事例と意味的な類似度を分析します。", result: "類似度スコアと「なぜ参考になるか」の理由が各事例に表示されます" },
+              { icon: "📋", title: "結果を確認", description: "類似度の高い順に事例が表示されます。AIサマリーで全体の傾向も確認できます。" },
+              { icon: "📖", title: "詳細を見る", description: "各事例の「詳細を見る」で課題・原因・解決策・効果の全情報を確認できます。提案者名をクリックすると提案者詳細も確認可能。" },
+            ]}
+            tips={[
+              "検索はナレッジベースに登録済みの改善案が対象です。先に「改善入力と整理」から改善案を登録してください。",
+              "類似度80%以上は非常に関連性が高い事例です。",
+              "Enterキーでも検索を実行できます。",
+            ]}
+          />
         </div>
 
         <Card>

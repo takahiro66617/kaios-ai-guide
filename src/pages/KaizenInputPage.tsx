@@ -112,17 +112,28 @@ const KaizenInputPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <PageHelpGuide
+              title="改善入力と整理 — 使い方"
+              overview="現場で気づいた改善点や試した工夫をテキスト入力し、AIが構造化データに変換します。登録した改善案はインパクトの見える化に自動的に反映されます。"
+              steps={[
+                { icon: "👤", title: "提案者を選択", description: "上部のドロップダウンから改善の提案者を選びます。提案者が登録されていない場合は「提案者管理」ページで先に追加してください。", result: "選んだ提案者がインパクト画面のトップ貢献者に反映されます" },
+                { icon: "✏️", title: "改善内容を入力", description: "テキストエリアに気づいた問題や試した工夫を自由に記述します。箇条書きでも文章でもOKです。", result: "Ctrl + Enterで送信もできます" },
+                { icon: "🤖", title: "AIで構造化する", description: "「AIで構造化する」ボタンを押すと、AIが課題・原因・解決策・効果・関連部署・タグなどを自動で抽出します。", result: "関連部署はAIが自動検出し、インパクトの横断性評価に反映されます" },
+                { icon: "📝", title: "ナレッジベースに登録", description: "構造化結果を確認し、「ナレッジベースに登録」を押すとデータベースに保存されます。", result: "インパクトの見える化ページの統計・グラフに即座に反映されます" },
+              ]}
+              tips={[
+                "提案者は「提案者管理」ページで事前に登録しておく必要があります。",
+                "AIが検出した関連部署の数が多いほど、部門横断の評価ウェイトが高い場合にインパクトスコアが上がります。",
+                "下書き保存はブラウザのセッション中のみ有効です。ページを離れると消えます。",
+              ]}
+            />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSaveDraft}>
               <Save className="w-4 h-4" />
-              下書きとして保存
+              下書き保存
             </Button>
             <Button size="sm" className="gap-1.5" onClick={handleRegisterToKnowledgeBase} disabled={!result}>
               <FileText className="w-4 h-4" />
-              ナレッジベースに登録
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/similar-cases")}>
-              <Search className="w-4 h-4" />
-              類似事例を探す
+              ナレッジ登録
             </Button>
           </div>
         </div>
