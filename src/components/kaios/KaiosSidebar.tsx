@@ -1,4 +1,4 @@
-import { Settings, Lightbulb, Search, BarChart3, Sparkles } from "lucide-react";
+import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
@@ -7,6 +7,12 @@ const menuItems = [
     subtitle: "AIの評価基準をチューニング",
     icon: Sparkles,
     path: "/",
+  },
+  {
+    title: "提案者管理",
+    subtitle: "メンバーの追加・編集",
+    icon: Users,
+    path: "/people",
   },
   {
     title: "改善入力と整理",

@@ -25,6 +25,7 @@ const App = () => (
           <Routes>
             <Route element={<KaiosLayout />}>
               <Route path="/" element={<EvaluationSettings />} />
+              <Route path="/people" element={<PeopleManagementPage />} />
               <Route path="/kaizen-input" element={<KaizenInputPage />} />
               <Route path="/similar-cases" element={<SimilarCasesPage />} />
               <Route path="/impact" element={<ImpactPage />} />
