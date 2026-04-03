@@ -427,7 +427,7 @@ const ImpactPage = () => {
                         )}
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-primary ml-3">{calculateImpactScore(item)}</span>
+                    <span className="text-lg font-bold text-primary ml-3">{item.impactScore}</span>
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground text-center py-4">該当する改善案がありません</p>
