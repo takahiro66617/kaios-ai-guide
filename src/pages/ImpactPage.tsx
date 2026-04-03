@@ -199,7 +199,7 @@ const ImpactPage = () => {
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
-      <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -214,7 +214,7 @@ const ImpactPage = () => {
         </div>
 
         {/* Eval Settings Banner */}
-        <div className="flex items-center justify-between p-4 rounded-lg border bg-primary/5 border-primary/20" data-tour="eval-banner">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border bg-primary/5 border-primary/20" data-tour="eval-banner">
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-primary shrink-0" />
             <div>
@@ -304,7 +304,7 @@ const ImpactPage = () => {
         </Card>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-tour="kpi-cards">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-tour="kpi-cards">
           <KpiCard icon={Zap} label="総改善案数" value={String(totalItems)} sub={`+${thisMonthItems} 今月`} />
           <KpiCard icon={TrendingUp} label="平均インパクトスコア" value={`${avgImpact}%`} sub="評価方針に連動" />
           <KpiCard icon={Users} label="参加部門数" value={`${activeDepts.size}部門`} sub={`${people.length}名登録`} />
