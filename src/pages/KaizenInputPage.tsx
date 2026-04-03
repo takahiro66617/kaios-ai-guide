@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Save, Search, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2, User } from "lucide-react";
+import { Sparkles, Save, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Paperclip, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -17,131 +19,186 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const EXAMPLE_INPUT = "営業資料の最新版を探すのが手間だったので、全資料を社内Wikiにまとめた";
+type Step = 1 | 2 | 3 | 4;
+
+interface Step1Data {
+  problem: string;
+  occurrencePlace: string;
+  impact: string;
+  frequency: string;
+  hypothesis: string;
+  direction: string;
+  expectedEffect: string;
+  // optional
+  relatedDepartments: string;
+  numericalEvidence: string;
+}
+
+const INITIAL_STEP1: Step1Data = {
+  problem: "",
+  occurrencePlace: "",
+  impact: "",
+  frequency: "",
+  hypothesis: "",
+  direction: "",
+  expectedEffect: "",
+  relatedDepartments: "",
+  numericalEvidence: "",
+};
+
+const FREQUENCY_OPTIONS = ["毎日", "週に数回", "週1回", "月に数回", "月1回以下", "不定期"];
+
+const STEP_LABELS = [
+  { num: 1, label: "最小十分入力" },
+  { num: 2, label: "AIドラフト生成" },
+  { num: 3, label: "差分修正" },
+  { num: 4, label: "確定・蓄積" },
+];
 
 const KaizenInputPage = () => {
-  const [inputText, setInputText] = useState("");
+  const [step, setStep] = useState<Step>(1);
+  const [step1Data, setStep1Data] = useState<Step1Data>(INITIAL_STEP1);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
-  const [draft, setDraft] = useState<string | null>(null);
+  const [aiDraft, setAiDraft] = useState<any | null>(null);
+  const [editedDraft, setEditedDraft] = useState<any | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const navigate = useNavigate();
   const { addKaizenItem, kaizenItems, people, getPersonById, evalSettings, calculateImpactScore } = useKaios();
 
-  // Set default person to first in list when people load
   useEffect(() => {
     if (people.length > 0 && !selectedPersonId) {
       setSelectedPersonId(people[0].id);
     }
   }, [people, selectedPersonId]);
 
-  const handleStructure = async () => {
-    const text = inputText.trim();
-    if (!text) { toast.error("テキストを入力してください"); return; }
+  const isStep1Valid = () => {
+    const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect } = step1Data;
+    return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim();
+  };
+
+  // Step 1 → Step 2: Send to AI
+  const handleGenerateDraft = async () => {
+    if (!isStep1Valid()) { toast.error("必須項目をすべて入力してください"); return; }
+    if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
     setIsProcessing(true);
-    setResult(null);
+    setStep(2);
     try {
-      const { data, error } = await supabase.functions.invoke("structure-kaizen", { body: { text } });
+      const inputText = `問題の内容: ${step1Data.problem}
+発生場所: ${step1Data.occurrencePlace}
+影響: ${step1Data.impact}
+頻度: ${step1Data.frequency}
+原因仮説: ${step1Data.hypothesis}
+改善案の方向: ${step1Data.direction}
+期待効果: ${step1Data.expectedEffect}
+${step1Data.relatedDepartments ? `関係部署: ${step1Data.relatedDepartments}` : ""}
+${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` : ""}`;
+
+      const { data, error } = await supabase.functions.invoke("structure-kaizen", { body: { text: inputText } });
       if (error) throw new Error(error.message || "AI処理に失敗しました");
       if (data?.error) throw new Error(data.error);
       if (data?.structured) {
-        setResult(data.structured);
-        toast.success("AIが改善案を構造化しました");
+        setAiDraft(data.structured);
+        setEditedDraft({ ...data.structured });
+        toast.success("AIがドラフトを生成しました");
       } else throw new Error("構造化データが返されませんでした");
     } catch (e: any) {
       console.error("Structure error:", e);
       toast.error(e.message || "AI処理中にエラーが発生しました");
+      setStep(1);
     } finally { setIsProcessing(false); }
   };
 
-  const handleSaveDraft = () => {
-    if (!inputText.trim()) { toast.error("テキストを入力してください"); return; }
-    setDraft(inputText);
-    toast.success("下書きとして保存しました");
+  // Step 3: Edit draft fields
+  const handleEditField = (field: string, value: string) => {
+    setEditedDraft((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegisterToKnowledgeBase = () => {
-    if (!result) { toast.error("先にAIで構造化してください"); return; }
+  // Step 4: Register to knowledge base
+  const handleRegister = () => {
+    if (!editedDraft) return;
     if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
-    
-    // Use AI-detected related_departments as adoptedBy
-    const relatedDepts = result.related_departments || [];
-    
+
+    const relatedDepts = editedDraft.related_departments || [];
+
     const newItem = addKaizenItem({
-      title: result.title,
-      problem: result.problem,
-      cause: result.cause,
-      solution: result.solution,
-      effect: result.effect,
-      department: result.department,
-      category: result.category,
-      reproducibility: result.reproducibility || "中",
-      tags: result.tags || [],
+      title: editedDraft.title,
+      problem: editedDraft.problem,
+      cause: editedDraft.cause,
+      solution: editedDraft.solution,
+      effect: editedDraft.effect,
+      department: editedDraft.department,
+      category: editedDraft.category,
+      reproducibility: editedDraft.reproducibility || "中",
+      tags: editedDraft.tags || [],
       authorId: selectedPersonId,
       adoptedBy: relatedDepts,
+      occurrencePlace: step1Data.occurrencePlace,
+      frequency: step1Data.frequency,
+      numericalEvidence: step1Data.numericalEvidence,
     });
+    setStep(4);
     toast.success("ナレッジベースに登録しました", {
-      description: `「${newItem.title}」が全社のナレッジとして共有されます（関連部署: ${relatedDepts.length}件）`,
+      description: `「${newItem.title}」（関連部署: ${relatedDepts.length}件）`,
     });
-    setResult(null);
-    setInputText("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.ctrlKey && e.key === "Enter") handleStructure();
+  const handleReset = () => {
+    setStep(1);
+    setStep1Data(INITIAL_STEP1);
+    setAiDraft(null);
+    setEditedDraft(null);
   };
 
-  const reproducibilityColor: Record<string, string> = {
-    "高": "bg-kaios-success/10 text-kaios-success border-kaios-success/20",
-    "中": "bg-primary/10 text-primary border-primary/20",
-    "低": "bg-muted text-muted-foreground border-border",
-  };
-
-  // Show recent registered items
   const recentItems = kaizenItems.filter(k => k.status !== "新規").slice(0, 3);
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-6 max-w-[1100px] mx-auto space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">改善入力と整理</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              現場での気づきや、試してみた工夫をテキストで入力してください。
-              AIが自動で「課題」「原因」「解決策」「関連部署」などの再利用可能な形式に構造化します。
+              4ステップで改善案を効率的に登録。AIが構造化ドラフトを生成し、ズレだけ修正すれば完了です。
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <PageHelpGuide
-              title="改善入力と整理 — 使い方"
-              overview="現場で気づいた改善点や試した工夫をテキスト入力し、AIが構造化データに変換します。登録した改善案はインパクトの見える化に自動的に反映されます。"
-              steps={[
-                { icon: "👤", title: "提案者を選択", description: "上部のドロップダウンから改善の提案者を選びます。提案者が登録されていない場合は「提案者管理」ページで先に追加してください。", result: "選んだ提案者がインパクト画面のトップ貢献者に反映されます" },
-                { icon: "✏️", title: "改善内容を入力", description: "テキストエリアに気づいた問題や試した工夫を自由に記述します。箇条書きでも文章でもOKです。", result: "Ctrl + Enterで送信もできます" },
-                { icon: "🤖", title: "AIで構造化する", description: "「AIで構造化する」ボタンを押すと、AIが課題・原因・解決策・効果・関連部署・タグなどを自動で抽出します。", result: "関連部署はAIが自動検出し、インパクトの横断性評価に反映されます" },
-                { icon: "📝", title: "ナレッジベースに登録", description: "構造化結果を確認し、「ナレッジベースに登録」を押すとデータベースに保存されます。", result: "インパクトの見える化ページの統計・グラフに即座に反映されます" },
-              ]}
-              tips={[
-                "提案者は「提案者管理」ページで事前に登録しておく必要があります。",
-                "AIが検出した関連部署の数が多いほど、部門横断の評価ウェイトが高い場合にインパクトスコアが上がります。",
-                "下書き保存はブラウザのセッション中のみ有効です。ページを離れると消えます。",
-              ]}
-            />
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSaveDraft}>
-              <Save className="w-4 h-4" />
-              下書き保存
-            </Button>
-            <Button size="sm" className="gap-1.5" onClick={handleRegisterToKnowledgeBase} disabled={!result}>
-              <FileText className="w-4 h-4" />
-              ナレッジ登録
-            </Button>
-          </div>
+          <PageHelpGuide
+            title="改善入力と整理 — 使い方"
+            overview="4ステップのウィザードで改善案を登録します。最小限の入力→AIドラフト生成→差分修正→確定の流れで、効率的にナレッジ資産を蓄積します。"
+            steps={[
+              { icon: "1️⃣", title: "Step1: 最小十分入力", description: "必須7項目（問題の内容・発生場所・影響・頻度・原因仮説・改善案の方向・期待効果）と任意3項目を入力します。", result: "AIが意味を外さず補助できるレベルの情報を最短で入力" },
+              { icon: "2️⃣", title: "Step2: AIドラフト生成", description: "入力内容をもとに、AIが構造化された改善シート案（タイトル・課題・原因・解決策・効果・関連部署・タグ等）を自動生成します。", result: "ゼロから書く手間をなくし、AIが構造化を代行" },
+              { icon: "3️⃣", title: "Step3: 差分修正", description: "AIドラフトの内容を確認し、ズレている箇所だけ修正します。各フィールドは直接編集可能です。", result: "全てを書き直す必要なく、微修正だけで完成度の高い改善シートに" },
+              { icon: "4️⃣", title: "Step4: 確定・蓄積", description: "修正後の改善案をナレッジベースに登録。インパクトスコアが自動算出され、見える化ページに即反映されます。", result: "組織のナレッジ資産として蓄積・活用可能に" },
+            ]}
+            tips={[
+              "提案者は事前に「提案者管理」ページで登録が必要です。",
+              "関係部署・添付資料・数値根拠は任意ですが、入力するとAIの精度が上がります。",
+              "AIが検出した関連部署はインパクトスコアの横断性評価に反映されます。",
+            ]}
+          />
         </div>
 
-        {/* Person Selector + Input Area */}
+        {/* Step Indicator */}
+        <div className="flex items-center gap-2">
+          {STEP_LABELS.map((s, idx) => (
+            <div key={s.num} className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                step === s.num ? "bg-primary text-primary-foreground" :
+                step > s.num ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+              }`}>
+                {step > s.num ? <CheckCircle2 className="w-3.5 h-3.5" /> : <span>{s.num}</span>}
+                <span className="hidden sm:inline">{s.label}</span>
+              </div>
+              {idx < STEP_LABELS.length - 1 && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Person Selector - always visible */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
               <User className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">提案者:</span>
               <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
@@ -163,100 +220,199 @@ const KaizenInputPage = () => {
                 ) : null;
               })()}
             </div>
-            <Textarea
-              placeholder="気づいた改善、試した工夫、業務で変えたことを自由に入力してください..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={6}
-              className="text-base resize-none border-none shadow-none focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50"
-            />
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-              <div className="space-y-1">
-                <button onClick={() => setInputText(EXAMPLE_INPUT)} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  入力例: {EXAMPLE_INPUT}
-                </button>
-                <p className="text-xs text-muted-foreground">※ Ctrl + Enter で送信</p>
-              </div>
-              <Button onClick={handleStructure} disabled={isProcessing || !inputText.trim()} className="gap-2">
-                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                AIで構造化する
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
-        {draft && !result && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
-            <Save className="w-4 h-4" />
-            下書きが保存されています
-            <button onClick={() => { setInputText(draft); toast.info("下書きを復元しました"); }} className="text-primary hover:underline ml-2">復元する</button>
-          </div>
-        )}
+        {/* ===== STEP 1: 最小十分入力 ===== */}
+        {step === 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-primary" />
+                Step1: 最小十分入力
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">AIが意味を外さず構造化できるレベルの情報を最短で入力してください。</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Required */}
+              <p className="text-xs font-bold text-foreground flex items-center gap-1"><span className="text-destructive">*</span> 必須項目</p>
 
-        {isProcessing && (
-          <div className="text-center py-12">
-            <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">AIが改善内容を分析・構造化しています...</p>
-          </div>
-        )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="flex items-center gap-1.5 text-sm"><AlertTriangle className="w-3.5 h-3.5 text-destructive" />問題の内容 <span className="text-destructive">*</span></Label>
+                  <Textarea
+                    placeholder="例: 営業資料の最新版がどこにあるか分からず、古い資料で提案してしまうことがある"
+                    value={step1Data.problem}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, problem: e.target.value }))}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
 
-        {result && !isProcessing && (
-          <Card className="border-primary/20 shadow-lg">
-            <CardContent className="p-6 space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle2 className="w-5 h-5 text-kaios-success" />
-                    <h2 className="text-lg font-bold text-foreground">{result.title}</h2>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><MapPin className="w-3.5 h-3.5 text-primary" />発生場所 <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="例: 営業部 / 第2製造ライン / 経理課"
+                    value={step1Data.occurrencePlace}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, occurrencePlace: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><BarChart2 className="w-3.5 h-3.5 text-primary" />影響 <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="例: 提案の失注率が上がる / 手戻りが発生"
+                    value={step1Data.impact}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, impact: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><RefreshCw className="w-3.5 h-3.5 text-primary" />頻度 <span className="text-destructive">*</span></Label>
+                  <Select value={step1Data.frequency} onValueChange={(v) => setStep1Data(prev => ({ ...prev, frequency: v }))}>
+                    <SelectTrigger><SelectValue placeholder="頻度を選択" /></SelectTrigger>
+                    <SelectContent>
+                      {FREQUENCY_OPTIONS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><Lightbulb className="w-3.5 h-3.5 text-primary" />原因仮説 <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="例: 資料の保管場所が統一されていない"
+                    value={step1Data.hypothesis}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, hypothesis: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><TrendingUp className="w-3.5 h-3.5 text-primary" />改善案の方向 <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="例: 社内Wikiに全資料を一元管理する"
+                    value={step1Data.direction}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="flex items-center gap-1.5 text-sm"><Sparkles className="w-3.5 h-3.5 text-primary" />期待効果 <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="例: 資料検索時間50%削減、提案精度向上"
+                    value={step1Data.expectedEffect}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, expectedEffect: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Optional */}
+              <div className="border-t border-border pt-4 mt-4">
+                <p className="text-xs font-bold text-muted-foreground mb-3">任意項目（入力するとAIの精度が向上します）</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5 text-sm"><Building2 className="w-3.5 h-3.5 text-muted-foreground" />関係部署</Label>
+                    <Input
+                      placeholder="例: マーケティング部, カスタマーサポート部"
+                      value={step1Data.relatedDepartments}
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, relatedDepartments: e.target.value }))}
+                    />
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{result.department}</span>
-                    <Badge variant="outline" className="text-xs">{result.category}</Badge>
-                    <Badge variant="outline" className={`text-xs ${reproducibilityColor[result.reproducibility] || ""}`}>
-                      再現性: {result.reproducibility}
-                    </Badge>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5 text-sm"><Hash className="w-3.5 h-3.5 text-muted-foreground" />数値根拠</Label>
+                    <Input
+                      placeholder="例: 月20件の手戻り、年間100時間のロス"
+                      value={step1Data.numericalEvidence}
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, numericalEvidence: e.target.value }))}
+                    />
                   </div>
                 </div>
-                {/* Preview impact score based on current eval settings */}
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={handleGenerateDraft} disabled={!isStep1Valid() || isProcessing} className="gap-2">
+                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  AIドラフトを生成する
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ===== STEP 2: AI Processing ===== */}
+        {step === 2 && isProcessing && (
+          <div className="text-center py-16">
+            <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+            <p className="text-base font-medium text-foreground mb-1">AIが改善シートのドラフトを生成中...</p>
+            <p className="text-sm text-muted-foreground">入力された情報をもとに、構造化された改善案を作成しています</p>
+          </div>
+        )}
+
+        {/* ===== STEP 2→3: AI Draft Review & Edit ===== */}
+        {(step === 2 || step === 3) && !isProcessing && editedDraft && (
+          <Card className="border-primary/20 shadow-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  {step === 2 ? (
+                    <><CheckCircle2 className="w-5 h-5 text-kaios-success" />Step2: AIドラフト生成完了</>
+                  ) : (
+                    <><Edit3 className="w-5 h-5 text-primary" />Step3: 差分修正</>
+                  )}
+                </CardTitle>
+                {/* Impact preview */}
                 <div className="text-center shrink-0 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2">
                   <p className="text-xs text-muted-foreground">予測インパクト</p>
                   <p className="text-2xl font-bold text-primary">
                     {calculateImpactScore({
-                      id: "preview", title: result.title, problem: result.problem, cause: result.cause,
-                      solution: result.solution, effect: result.effect, department: result.department,
-                      category: result.category, reproducibility: result.reproducibility || "中",
-                      tags: result.tags || [], status: "構造化済み", authorId: selectedPersonId,
+                      id: "preview", title: editedDraft.title, problem: editedDraft.problem, cause: editedDraft.cause,
+                      solution: editedDraft.solution, effect: editedDraft.effect, department: editedDraft.department,
+                      category: editedDraft.category, reproducibility: editedDraft.reproducibility || "中",
+                      tags: editedDraft.tags || [], status: "構造化済み", authorId: selectedPersonId,
                       createdAt: new Date().toISOString().slice(0, 10),
-                      adoptedBy: result.related_departments || [],
-                      impactScore: 0,
+                      adoptedBy: editedDraft.related_departments || [],
+                      impactScore: 0, occurrencePlace: step1Data.occurrencePlace,
+                      frequency: step1Data.frequency, numericalEvidence: step1Data.numericalEvidence,
                     })}
                   </p>
                   <p className="text-xs text-muted-foreground">/ 100</p>
                 </div>
               </div>
-
+              {step === 2 && (
+                <p className="text-xs text-muted-foreground mt-1">AIが生成したドラフトです。内容を確認し、修正が必要な場合は「差分修正に進む」を押してください。</p>
+              )}
+              {step === 3 && (
+                <p className="text-xs text-muted-foreground mt-1">各フィールドを直接編集できます。ズレている箇所だけ修正してください。</p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
               {/* Eval settings context */}
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
-                現在の評価方針: Speed {evalSettings.speed}% / Cross-functional {evalSettings.crossFunctional}% で算出
-                <button onClick={() => navigate("/")} className="text-primary hover:underline ml-1">設定を変更</button>
+                現在の評価方針: Speed {evalSettings.speed}% / Cross-functional {evalSettings.crossFunctional}%
               </div>
 
+              {/* Editable fields */}
+              <EditableField label="タイトル" value={editedDraft.title} onChange={(v) => handleEditField("title", v)} readOnly={step === 2} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <StructuredField label="課題" value={result.problem} icon="🔴" />
-                <StructuredField label="原因" value={result.cause} icon="🔍" />
-                <StructuredField label="解決策" value={result.solution} icon="💡" />
-                <StructuredField label="効果" value={result.effect} icon="📈" />
+                <EditableField label="🔴 課題" value={editedDraft.problem} onChange={(v) => handleEditField("problem", v)} readOnly={step === 2} multiline />
+                <EditableField label="🔍 原因" value={editedDraft.cause} onChange={(v) => handleEditField("cause", v)} readOnly={step === 2} multiline />
+                <EditableField label="💡 解決策" value={editedDraft.solution} onChange={(v) => handleEditField("solution", v)} readOnly={step === 2} multiline />
+                <EditableField label="📈 効果" value={editedDraft.effect} onChange={(v) => handleEditField("effect", v)} readOnly={step === 2} multiline />
               </div>
 
-              {/* AI-detected related departments */}
-              {result.related_departments && result.related_departments.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <EditableField label="部門" value={editedDraft.department} onChange={(v) => handleEditField("department", v)} readOnly={step === 2} />
+                <EditableField label="カテゴリ" value={editedDraft.category} onChange={(v) => handleEditField("category", v)} readOnly={step === 2} />
+                <EditableField label="再現性" value={editedDraft.reproducibility} onChange={(v) => handleEditField("reproducibility", v)} readOnly={step === 2} />
+              </div>
+
+              {/* Related departments */}
+              {editedDraft.related_departments && editedDraft.related_departments.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">🏢 AIが検出した関連部署（インパクト見える化に反映）</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">🏢 AIが検出した関連部署</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {result.related_departments.map((dept: string, i: number) => (
+                    {editedDraft.related_departments.map((dept: string, i: number) => (
                       <Badge key={i} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary">
                         <Building2 className="w-3 h-3 mr-1" />{dept}
                       </Badge>
@@ -265,74 +421,121 @@ const KaizenInputPage = () => {
                 </div>
               )}
 
+              {/* Tags */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">タグ</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {(result.tags || []).map((tag: string, i: number) => (
+                  {(editedDraft.tags || []).map((tag: string, i: number) => (
                     <Badge key={i} variant="secondary" className="text-xs"><Tag className="w-3 h-3 mr-1" />{tag}</Badge>
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2 pt-2 border-t border-border">
-                <Button size="sm" className="gap-1.5" onClick={handleRegisterToKnowledgeBase}><FileText className="w-4 h-4" />ナレッジベースに登録</Button>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setResult(null); setInputText(""); }}><RefreshCw className="w-4 h-4" />新しい改善案を入力</Button>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/similar-cases")}><Search className="w-4 h-4" />類似事例を探す</Button>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-4 border-t border-border">
+                {step === 2 && (
+                  <>
+                    <Button size="sm" className="gap-1.5" onClick={handleRegister}>
+                      <FileText className="w-4 h-4" />このまま登録する
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setStep(3)}>
+                      <Edit3 className="w-4 h-4" />差分修正に進む
+                    </Button>
+                  </>
+                )}
+                {step === 3 && (
+                  <>
+                    <Button size="sm" className="gap-1.5" onClick={handleRegister}>
+                      <FileText className="w-4 h-4" />確定してナレッジ登録
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setStep(2)}>
+                      ドラフトに戻す
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setStep(1)}>
+                  <RefreshCw className="w-4 h-4" />Step1からやり直す
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {!result && !isProcessing && (
-          <>
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="w-16 h-16 mx-auto mb-4 opacity-20" />
-              <p className="text-base font-medium mb-1">上部の入力欄に改善内容を記述して「AIで構造化する」を押してください。</p>
-            </div>
-
-            {/* Recently registered items from shared context */}
-            {recentItems.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
-                {recentItems.map((item) => {
-                  const author = getPersonById(item.authorId);
-                  return (
-                    <Card key={item.id} className="hover:shadow-sm transition-shadow">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                              <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                              <span>{item.department}</span>
-                              {author && <span className="text-primary">{author.name}</span>}
-                              <span>{item.createdAt}</span>
-                              {item.adoptedBy.length > 0 && (
-                                <span className="text-kaios-success">{item.adoptedBy.length}部門関連</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-primary">{item.impactScore}pt</span>
-                            <Badge variant="secondary" className="text-xs">{item.status}</Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+        {/* ===== STEP 4: Complete ===== */}
+        {step === 4 && (
+          <Card className="border-kaios-success/30 bg-kaios-success/5">
+            <CardContent className="p-8 text-center space-y-4">
+              <CheckCircle2 className="w-16 h-16 text-kaios-success mx-auto" />
+              <h2 className="text-xl font-bold text-foreground">ナレッジ登録完了</h2>
+              <p className="text-sm text-muted-foreground">
+                改善案がナレッジベースに蓄積されました。インパクトの見える化ページに即座に反映されます。
+              </p>
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <Button onClick={handleReset} className="gap-1.5">
+                  <RefreshCw className="w-4 h-4" />新しい改善案を入力
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/impact")} className="gap-1.5">
+                  <BarChart2 className="w-4 h-4" />インパクトを確認
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/similar-cases")} className="gap-1.5">
+                  <FileText className="w-4 h-4" />類似事例を探す
+                </Button>
               </div>
-            )}
-          </>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent items - visible on step 1 and 4 */}
+        {(step === 1 || step === 4) && recentItems.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
+            {recentItems.map((item) => {
+              const author = getPersonById(item.authorId);
+              return (
+                <Card key={item.id} className="hover:shadow-sm transition-shadow">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                          <span>{item.department}</span>
+                          {author && <span className="text-primary">{author.name}</span>}
+                          <span>{item.createdAt}</span>
+                          {item.adoptedBy.length > 0 && (
+                            <span className="text-kaios-success">{item.adoptedBy.length}部門関連</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-primary">{item.impactScore}pt</span>
+                        <Badge variant="secondary" className="text-xs">{item.status}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </div>
     </main>
   );
 };
 
-const StructuredField = ({ label, value, icon }: { label: string; value: string; icon: string }) => (
-  <div className="rounded-lg border border-border bg-muted/30 p-4">
-    <p className="text-xs font-bold text-muted-foreground mb-1.5">{icon} {label}</p>
-    <p className="text-sm text-foreground leading-relaxed">{value}</p>
+// Editable field component
+const EditableField = ({ label, value, onChange, readOnly = false, multiline = false }: {
+  label: string; value: string; onChange: (v: string) => void; readOnly?: boolean; multiline?: boolean;
+}) => (
+  <div className="rounded-lg border border-border bg-muted/30 p-3">
+    <p className="text-xs font-bold text-muted-foreground mb-1.5">{label}</p>
+    {readOnly ? (
+      <p className="text-sm text-foreground">{value}</p>
+    ) : multiline ? (
+      <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="resize-none text-sm" />
+    ) : (
+      <Input value={value} onChange={(e) => onChange(e.target.value)} className="text-sm" />
+    )}
   </div>
 );
 
