@@ -62,7 +62,7 @@ const SORT_OPTIONS = [
 ];
 
 const ImpactPage = () => {
-  const { kaizenItems, people, getKaizenByPerson, evalSettings, calculateImpactScore } = useKaios();
+  const { kaizenItems, people, getKaizenByPerson, evalSettings } = useKaios();
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
   const navigate = useNavigate();
@@ -110,7 +110,7 @@ const ImpactPage = () => {
   // Compute stats from filtered data
   const totalItems = filteredItems.length;
   const completedItems = filteredItems.filter(k => k.status === "完了").length;
-  const avgImpact = totalItems > 0 ? Math.round(filteredItems.reduce((s, k) => s + calculateImpactScore(k), 0) / totalItems) : 0;
+  const avgImpact = totalItems > 0 ? Math.round(filteredItems.reduce((s, k) => s + k.impactScore, 0) / totalItems) : 0;
   const activeDepts = new Set(filteredItems.map(k => k.department));
   const thisMonthItems = filteredItems.filter(k => {
     const now = new Date();
@@ -124,7 +124,7 @@ const ImpactPage = () => {
     filteredItems.forEach(k => {
       const existing = deptMap.get(k.department) || { count: 0, totalImpact: 0 };
       existing.count++;
-      existing.totalImpact += calculateImpactScore(k);
+      existing.totalImpact += k.impactScore;
       deptMap.set(k.department, existing);
     });
     return Array.from(deptMap.entries()).map(([name, data]) => ({
@@ -132,7 +132,7 @@ const ImpactPage = () => {
       count: data.count,
       impact: Math.round(data.totalImpact / data.count),
     })).sort((a, b) => b.count - a.count);
-  }, [filteredItems, calculateImpactScore]);
+  }, [filteredItems]);
 
   // Category data
   const categoryData = useMemo(() => {
@@ -149,7 +149,7 @@ const ImpactPage = () => {
     filteredItems.forEach(k => {
       const existing = personMap.get(k.authorId) || { count: 0, totalScore: 0, adoptions: 0, completed: 0 };
       existing.count++;
-      existing.totalScore += calculateImpactScore(k);
+      existing.totalScore += k.impactScore;
       existing.adoptions += k.adoptedBy.length;
       if (k.status === "完了") existing.completed++;
       personMap.set(k.authorId, existing);
@@ -174,14 +174,14 @@ const ImpactPage = () => {
         return b!.score - a!.score;
       })
       .slice(0, 8) as { person: Person; count: number; score: number; adoptions: number; completed: number }[];
-  }, [filteredItems, people, calculateImpactScore, sortBy]);
+  }, [filteredItems, people, sortBy]);
 
   // High impact items
   const highImpactItems = useMemo(() => {
     return [...filteredItems]
-      .sort((a, b) => calculateImpactScore(b) - calculateImpactScore(a))
+      .sort((a, b) => b.impactScore - a.impactScore)
       .slice(0, 5);
-  }, [filteredItems, calculateImpactScore]);
+  }, [filteredItems]);
 
   const handlePersonClick = (person: Person) => {
     setSelectedPerson(person);
@@ -427,7 +427,7 @@ const ImpactPage = () => {
                         )}
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-primary ml-3">{calculateImpactScore(item)}</span>
+                    <span className="text-lg font-bold text-primary ml-3">{item.impactScore}</span>
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground text-center py-4">該当する改善案がありません</p>

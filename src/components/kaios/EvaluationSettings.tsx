@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X } from "lucide-react";
+import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKaios } from "@/contexts/KaiosContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -72,21 +73,45 @@ const mockHistory: HistoryEntry[] = [
 
 
 const EvaluationSettings = () => {
-  const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore } = useKaios();
+  const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore, refreshItems } = useKaios();
   const [speed, setSpeed] = useState(evalSettings.speed);
   const [crossFunctional, setCrossFunctional] = useState(evalSettings.crossFunctional);
   const [savedSpeed, setSavedSpeed] = useState(evalSettings.speed);
   const [savedCross, setSavedCross] = useState(evalSettings.crossFunctional);
+  const [isSaving, setIsSaving] = useState(false);
 
   const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
 
-  const handleSave = () => {
-    setSavedSpeed(speed);
-    setSavedCross(crossFunctional);
-    setEvalSettings({ speed, crossFunctional });
-    toast.success("設定を保存しました", {
-      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}% — 全${kaizenItems.length}件の改善案のスコアが再計算され、インパクト見える化に反映されます`,
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Call AI edge function to recalculate all scores
+      const { data, error } = await supabase.functions.invoke("recalculate-impact", {
+        body: { speed, crossFunctional },
+      });
+
+      if (error) {
+        console.error("Recalculate error:", error);
+        toast.error("AIによるスコア再計算に失敗しました");
+        return;
+      }
+
+      setSavedSpeed(speed);
+      setSavedCross(crossFunctional);
+      setEvalSettings({ speed, crossFunctional });
+
+      // Refresh items to get updated scores from DB
+      await refreshItems();
+
+      toast.success("設定を保存し、AIでスコアを再計算しました", {
+        description: `${data?.updated ?? 0}件の改善案のインパクトスコアが更新されました`,
+      });
+    } catch (e) {
+      console.error("Save error:", e);
+      toast.error("保存に失敗しました");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Calculate how scores would change with new settings
@@ -190,9 +215,9 @@ const EvaluationSettings = () => {
               </DialogContent>
             </Dialog>
 
-            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges}>
-              <Save className="w-4 h-4" />
-              設定を保存
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSaving ? "AI再計算中..." : "設定を保存"}
             </Button>
           </div>
         </div>
