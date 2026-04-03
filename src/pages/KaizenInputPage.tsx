@@ -25,7 +25,7 @@ const KaizenInputPage = () => {
   const [draft, setDraft] = useState<string | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState("p1");
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people, getPersonById } = useKaios();
+  const { addKaizenItem, kaizenItems, people, getPersonById, evalSettings, calculateImpactScore } = useKaios();
 
   const handleStructure = async () => {
     const text = inputText.trim();
@@ -194,7 +194,29 @@ const KaizenInputPage = () => {
                     </Badge>
                   </div>
                 </div>
+                {/* Preview impact score based on current eval settings */}
+                <div className="text-center shrink-0 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2">
+                  <p className="text-xs text-muted-foreground">予測インパクト</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {calculateImpactScore({
+                      id: "preview", title: result.title, problem: result.problem, cause: result.cause,
+                      solution: result.solution, effect: result.effect, department: result.department,
+                      category: result.category, reproducibility: result.reproducibility || "中",
+                      tags: result.tags || [], status: "構造化済み", authorId: selectedPersonId,
+                      createdAt: new Date().toISOString().slice(0, 10), adoptedBy: [], impactScore: 0,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">/ 100</p>
+                </div>
               </div>
+
+              {/* Eval settings context */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                現在の評価方針: Speed {evalSettings.speed}% / Cross-functional {evalSettings.crossFunctional}% で算出
+                <button onClick={() => navigate("/")} className="text-primary hover:underline ml-1">設定を変更</button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <StructuredField label="課題" value={result.problem} icon="🔴" />
                 <StructuredField label="原因" value={result.cause} icon="🔍" />
@@ -229,23 +251,30 @@ const KaizenInputPage = () => {
             {recentItems.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
-                {recentItems.map((item) => (
-                  <Card key={item.id} className="hover:shadow-sm transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                            <span>{item.department}</span>
-                            <span>{item.createdAt}</span>
+                {recentItems.map((item) => {
+                  const author = getPersonById(item.authorId);
+                  return (
+                    <Card key={item.id} className="hover:shadow-sm transition-shadow">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                              <span>{item.department}</span>
+                              {author && <span className="text-primary">{author.name}</span>}
+                              <span>{item.createdAt}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-primary">{calculateImpactScore(item)}pt</span>
+                            <Badge variant="secondary" className="text-xs">{item.status}</Badge>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs">{item.status}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </>

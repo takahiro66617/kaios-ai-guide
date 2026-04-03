@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Settings, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -112,9 +112,30 @@ const ImpactPage = () => {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               改善活動が組織に与えるインパクトをリアルタイムで可視化します。
-              評価方針設定（Speed: {evalSettings.speed}%, Cross-functional: {evalSettings.crossFunctional}%）に基づいてスコアが計算されます。
             </p>
           </div>
+        </div>
+
+        {/* Eval Settings Banner - shows connection to evaluation criteria */}
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-primary/5 border-primary/20">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-primary shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                現在の評価方針: <span className="text-primary">Speed {evalSettings.speed}%</span> / <span className="text-primary">Cross-functional {evalSettings.crossFunctional}%</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                全{totalItems}件の改善案のインパクトスコアがこの方針に基づいて算出されています
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 text-sm text-primary hover:underline shrink-0"
+          >
+            <Settings className="w-4 h-4" />
+            評価方針を変更
+          </button>
         </div>
 
         {/* KPI Cards - all from real data */}
