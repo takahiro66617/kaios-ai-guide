@@ -33,12 +33,18 @@ export interface KaizenItem {
   numericalEvidence: string;
 }
 
-export interface EvalSettings {
-  speed: number;
-  crossFunctional: number;
-  reproducibilityWeight: number;
-  costEfficiency: number;
-  innovation: number;
+export interface EvalAxis {
+  id: string;
+  name: string;
+  key: string;
+  description: string;
+  tooltip: string;
+  leftLabel: string;
+  rightLabel: string;
+  defaultValue: number;
+  weight: number;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 const mapRowToPerson = (row: any): Person => ({
@@ -72,12 +78,30 @@ const mapRowToItem = (row: any): KaizenItem => ({
   numericalEvidence: row.numerical_evidence || "",
 });
 
+const mapRowToAxis = (row: any): EvalAxis => ({
+  id: row.id,
+  name: row.name,
+  key: row.key,
+  description: row.description || "",
+  tooltip: row.tooltip || "",
+  leftLabel: row.left_label || "低 (0%)",
+  rightLabel: row.right_label || "高 (100%)",
+  defaultValue: row.default_value ?? 50,
+  weight: row.weight ?? 50,
+  sortOrder: row.sort_order ?? 0,
+  isActive: row.is_active ?? true,
+});
+
 interface KaiosContextType {
   people: Person[];
   kaizenItems: KaizenItem[];
   isLoading: boolean;
-  evalSettings: EvalSettings;
-  setEvalSettings: (s: EvalSettings) => void;
+  evalAxes: EvalAxis[];
+  refreshEvalAxes: () => Promise<void>;
+  addEvalAxis: (axis: Omit<EvalAxis, "id" | "isActive">) => Promise<EvalAxis | null>;
+  updateEvalAxis: (id: string, updates: Partial<EvalAxis>) => Promise<void>;
+  deleteEvalAxis: (id: string) => Promise<void>;
+  updateAxisWeight: (id: string, weight: number) => void;
   addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
   updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
   getPersonById: (id: string) => Person | undefined;
@@ -102,33 +126,20 @@ export const useKaios = () => {
 export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   const [people, setPeople] = useState<Person[]>([]);
   const [kaizenItems, setKaizenItems] = useState<KaizenItem[]>([]);
+  const [evalAxes, setEvalAxes] = useState<EvalAxis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [evalSettings, setEvalSettings] = useState<EvalSettings>({
-    speed: 50,
-    crossFunctional: 50,
-    reproducibilityWeight: 50,
-    costEfficiency: 50,
-    innovation: 50,
-  });
 
-  const refreshEvalSettings = useCallback(async () => {
+  const refreshEvalAxes = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("eval_settings")
+        .from("eval_axes")
         .select("*")
-        .limit(1)
-        .single();
+        .order("sort_order", { ascending: true });
       if (!error && data) {
-        setEvalSettings({
-          speed: (data as any).speed ?? 50,
-          crossFunctional: (data as any).cross_functional ?? 50,
-          reproducibilityWeight: (data as any).reproducibility_weight ?? 50,
-          costEfficiency: (data as any).cost_efficiency ?? 50,
-          innovation: (data as any).innovation ?? 50,
-        });
+        setEvalAxes((data as any[]).map(mapRowToAxis));
       }
     } catch (e) {
-      console.error("Error loading eval settings:", e);
+      console.error("Error loading eval axes:", e);
     }
   }, []);
 
@@ -138,14 +149,9 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         .from("people")
         .select("*")
         .order("created_at", { ascending: true });
-      if (error) {
-        console.error("Failed to load people:", error);
-        return;
-      }
+      if (error) { console.error("Failed to load people:", error); return; }
       if (data) setPeople((data as any[]).map(mapRowToPerson));
-    } catch (e) {
-      console.error("Error loading people:", e);
-    }
+    } catch (e) { console.error("Error loading people:", e); }
   }, []);
 
   const refreshItems = useCallback(async () => {
@@ -154,92 +160,114 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         .from("kaizen_items")
         .select("*")
         .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Failed to load kaizen items:", error);
-        return;
-      }
+      if (error) { console.error("Failed to load kaizen items:", error); return; }
       if (data) setKaizenItems((data as any[]).map(mapRowToItem));
-    } catch (e) {
-      console.error("Error loading kaizen items:", e);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (e) { console.error("Error loading kaizen items:", e); }
+    finally { setIsLoading(false); }
   }, []);
 
   useEffect(() => {
-    Promise.all([refreshPeople(), refreshItems(), refreshEvalSettings()]);
-  }, [refreshPeople, refreshItems, refreshEvalSettings]);
+    Promise.all([refreshPeople(), refreshItems(), refreshEvalAxes()]);
+  }, [refreshPeople, refreshItems, refreshEvalAxes]);
 
   const calculateImpactScore = useCallback((item: KaizenItem) => {
-    const baseScore = 30;
-    const speedBonus = evalSettings.speed * 0.1;
-    const crossBonus = (item.adoptedBy.length * 6) * (evalSettings.crossFunctional / 100);
-    const reproBonus = item.reproducibility === "高"
-      ? evalSettings.reproducibilityWeight * 0.2
-      : item.reproducibility === "中"
-        ? evalSettings.reproducibilityWeight * 0.1
-        : 0;
-    const costBonus = evalSettings.costEfficiency * 0.08;
-    const innoBonus = evalSettings.innovation * 0.07;
-    return Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus + costBonus + innoBonus));
-  }, [evalSettings]);
+    const activeAxes = evalAxes.filter(a => a.isActive);
+    if (activeAxes.length === 0) return 50;
+    const totalWeight = activeAxes.reduce((s, a) => s + a.weight, 0);
+    if (totalWeight === 0) return 50;
+    // Simple heuristic score based on weights
+    let score = 30;
+    activeAxes.forEach(axis => {
+      const normalizedWeight = axis.weight / totalWeight;
+      score += normalizedWeight * 20; // base contribution
+      // bonus for reproducibility
+      if (axis.key === "reproducibility" && item.reproducibility === "高") score += normalizedWeight * 15;
+      if (axis.key === "cross_functional") score += item.adoptedBy.length * 3 * normalizedWeight;
+    });
+    return Math.min(100, Math.round(score));
+  }, [evalAxes]);
+
+  const addEvalAxis = useCallback(async (axis: Omit<EvalAxis, "id" | "isActive">): Promise<EvalAxis | null> => {
+    try {
+      const { data, error } = await supabase.from("eval_axes").insert({
+        name: axis.name,
+        key: axis.key,
+        description: axis.description,
+        tooltip: axis.tooltip,
+        left_label: axis.leftLabel,
+        right_label: axis.rightLabel,
+        default_value: axis.defaultValue,
+        weight: axis.weight,
+        sort_order: axis.sortOrder,
+      }).select().single();
+      if (error) { toast.error("評価軸の追加に失敗しました"); return null; }
+      if (data) {
+        const newAxis = mapRowToAxis(data);
+        setEvalAxes(prev => [...prev, newAxis].sort((a, b) => a.sortOrder - b.sortOrder));
+        return newAxis;
+      }
+      return null;
+    } catch (e) { console.error("Error adding axis:", e); return null; }
+  }, []);
+
+  const updateEvalAxis = useCallback(async (id: string, updates: Partial<EvalAxis>) => {
+    try {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.key !== undefined) dbUpdates.key = updates.key;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.tooltip !== undefined) dbUpdates.tooltip = updates.tooltip;
+      if (updates.leftLabel !== undefined) dbUpdates.left_label = updates.leftLabel;
+      if (updates.rightLabel !== undefined) dbUpdates.right_label = updates.rightLabel;
+      if (updates.defaultValue !== undefined) dbUpdates.default_value = updates.defaultValue;
+      if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
+      if (updates.sortOrder !== undefined) dbUpdates.sort_order = updates.sortOrder;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+      const { error } = await supabase.from("eval_axes").update(dbUpdates).eq("id", id);
+      if (error) { toast.error("評価軸の更新に失敗しました"); return; }
+      setEvalAxes(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+    } catch (e) { console.error("Error updating axis:", e); }
+  }, []);
+
+  const deleteEvalAxis = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase.from("eval_axes").delete().eq("id", id);
+      if (error) { toast.error("評価軸の削除に失敗しました"); return; }
+      setEvalAxes(prev => prev.filter(a => a.id !== id));
+    } catch (e) { console.error("Error deleting axis:", e); }
+  }, []);
+
+  const updateAxisWeight = useCallback((id: string, weight: number) => {
+    setEvalAxes(prev => prev.map(a => a.id === id ? { ...a, weight } : a));
+  }, []);
 
   const addKaizenItem = useCallback(async (
     item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }
   ): Promise<KaizenItem | null> => {
     const adoptedBy = item.adoptedBy || [];
     const registeredItem: KaizenItem = {
-      ...item,
-      id: `temp-${Date.now()}`,
-      createdAt: new Date().toISOString().slice(0, 10),
-      adoptedBy,
-      impactScore: 0,
-      status: "ナレッジ登録済み",
+      ...item, id: `temp-${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10),
+      adoptedBy, impactScore: 0, status: "ナレッジ登録済み",
     };
     registeredItem.impactScore = calculateImpactScore(registeredItem);
-
     try {
-      const { data, error } = await supabase
-        .from("kaizen_items")
-        .insert({
-          title: item.title,
-          problem: item.problem,
-          cause: item.cause,
-          solution: item.solution,
-          effect: item.effect,
-          department: item.department,
-          category: item.category,
-          reproducibility: item.reproducibility,
-          tags: item.tags,
-          status: "ナレッジ登録済み",
-          author_id: item.authorId,
-          adopted_by: adoptedBy,
-          impact_score: registeredItem.impactScore,
-          occurrence_place: item.occurrencePlace || "",
-          frequency: item.frequency || "",
-          numerical_evidence: item.numericalEvidence || "",
-        } as any)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Failed to save kaizen item:", error);
-        toast.error("データベースへの保存に失敗しました");
-        return null;
-      }
-
+      const { data, error } = await supabase.from("kaizen_items").insert({
+        title: item.title, problem: item.problem, cause: item.cause,
+        solution: item.solution, effect: item.effect, department: item.department,
+        category: item.category, reproducibility: item.reproducibility,
+        tags: item.tags, status: "ナレッジ登録済み", author_id: item.authorId,
+        adopted_by: adoptedBy, impact_score: registeredItem.impactScore,
+        occurrence_place: item.occurrencePlace || "", frequency: item.frequency || "",
+        numerical_evidence: item.numericalEvidence || "",
+      } as any).select().single();
+      if (error) { toast.error("データベースへの保存に失敗しました"); return null; }
       if (data) {
         const dbItem = mapRowToItem(data);
         setKaizenItems(prev => [dbItem, ...prev.filter(i => i.id !== dbItem.id)]);
         return dbItem;
       }
-
       return null;
-    } catch (e) {
-      console.error("Error saving kaizen item:", e);
-      toast.error("データベースへの保存に失敗しました");
-      return null;
-    }
+    } catch (e) { toast.error("データベースへの保存に失敗しました"); return null; }
   }, [calculateImpactScore]);
 
   const updateKaizenStatus = useCallback((id: string, status: KaizenItem["status"]) => {
@@ -248,40 +276,20 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { error } = await supabase.from("kaizen_items").update({ status }).eq("id", id);
         if (error) console.error("Failed to update status:", error);
-      } catch (e) {
-        console.error("Error updating status:", e);
-      }
+      } catch (e) { console.error("Error updating status:", e); }
     })();
   }, []);
 
   const addPerson = useCallback(async (person: Omit<Person, "id" | "isActive">): Promise<Person | null> => {
     try {
-      const { data, error } = await supabase
-        .from("people")
-        .insert({
-          name: person.name,
-          department: person.department,
-          role: person.role,
-          years_at_company: person.yearsAtCompany,
-          avatar_initial: person.avatarInitial,
-        })
-        .select()
-        .single();
-      if (error) {
-        console.error("Failed to add person:", error);
-        toast.error("提案者の追加に失敗しました");
-        return null;
-      }
-      if (data) {
-        const newPerson = mapRowToPerson(data);
-        setPeople(prev => [...prev, newPerson]);
-        return newPerson;
-      }
+      const { data, error } = await supabase.from("people").insert({
+        name: person.name, department: person.department, role: person.role,
+        years_at_company: person.yearsAtCompany, avatar_initial: person.avatarInitial,
+      }).select().single();
+      if (error) { toast.error("提案者の追加に失敗しました"); return null; }
+      if (data) { const np = mapRowToPerson(data); setPeople(prev => [...prev, np]); return np; }
       return null;
-    } catch (e) {
-      console.error("Error adding person:", e);
-      return null;
-    }
+    } catch (e) { console.error("Error adding person:", e); return null; }
   }, []);
 
   const updatePerson = useCallback(async (id: string, updates: Partial<Person>) => {
@@ -294,29 +302,17 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
       if (updates.avatarInitial !== undefined) dbUpdates.avatar_initial = updates.avatarInitial;
       if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
       const { error } = await supabase.from("people").update(dbUpdates).eq("id", id);
-      if (error) {
-        console.error("Failed to update person:", error);
-        toast.error("提案者の更新に失敗しました");
-        return;
-      }
+      if (error) { toast.error("提案者の更新に失敗しました"); return; }
       setPeople(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    } catch (e) {
-      console.error("Error updating person:", e);
-    }
+    } catch (e) { console.error("Error updating person:", e); }
   }, []);
 
   const deletePerson = useCallback(async (id: string) => {
     try {
       const { error } = await supabase.from("people").delete().eq("id", id);
-      if (error) {
-        console.error("Failed to delete person:", error);
-        toast.error("提案者の削除に失敗しました");
-        return;
-      }
+      if (error) { toast.error("提案者の削除に失敗しました"); return; }
       setPeople(prev => prev.filter(p => p.id !== id));
-    } catch (e) {
-      console.error("Error deleting person:", e);
-    }
+    } catch (e) { console.error("Error deleting person:", e); }
   }, []);
 
   const getPersonById = useCallback((id: string) => people.find(p => p.id === id), [people]);
@@ -325,22 +321,12 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <KaiosContext.Provider value={{
-      people,
-      kaizenItems,
-      isLoading,
-      evalSettings,
-      setEvalSettings,
-      addKaizenItem,
-      updateKaizenStatus,
-      getPersonById,
-      getKaizenByPerson,
-      getKaizenByDepartment,
-      calculateImpactScore,
-      refreshItems,
-      refreshPeople,
-      addPerson,
-      updatePerson,
-      deletePerson,
+      people, kaizenItems, isLoading,
+      evalAxes, refreshEvalAxes, addEvalAxis, updateEvalAxis, deleteEvalAxis, updateAxisWeight,
+      addKaizenItem, updateKaizenStatus,
+      getPersonById, getKaizenByPerson, getKaizenByDepartment,
+      calculateImpactScore, refreshItems, refreshPeople,
+      addPerson, updatePerson, deletePerson,
     }}>
       {children}
     </KaiosContext.Provider>
