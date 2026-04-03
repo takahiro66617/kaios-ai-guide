@@ -71,7 +71,7 @@ const SORT_OPTIONS = [
 ];
 
 const ImpactPage = () => {
-  const { kaizenItems, people, getKaizenByPerson, evalSettings } = useKaios();
+  const { kaizenItems, people, getKaizenByPerson, evalAxes } = useKaios();
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
   const navigate = useNavigate();
