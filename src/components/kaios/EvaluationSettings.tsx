@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
 import {
   Dialog,
   DialogContent,
@@ -30,8 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const DEFAULT_SPEED = 50;
-const DEFAULT_CROSS = 50;
+const DEFAULTS = { speed: 50, crossFunctional: 50, reproducibilityWeight: 50, costEfficiency: 50, innovation: 50 };
 
 const getSpeedText = (v: number) => {
   if (v <= 30) return "慎重かつ確実なプロセスを最優先し、十分な検証を経た改善を高く評価します。";
@@ -47,14 +46,35 @@ const getCrossText = (v: number) => {
   return "全社的なシナジーと部門横断での波及効果を極めて高く評価し、組織全体の変革を重視します。";
 };
 
-const getHighEvalPatterns = (speed: number, cross: number) => {
+const getReproText = (v: number) => {
+  if (v <= 30) return "一回限りの改善でも効果があれば評価します。";
+  if (v <= 60) return "再現性のある改善を標準的に評価します。";
+  return "高い再現性を持ち、標準化・横展開可能な改善を特に高く評価します。";
+};
+
+const getCostText = (v: number) => {
+  if (v <= 30) return "コストよりも効果の大きさを重視します。";
+  if (v <= 60) return "コストと効果のバランスを考慮します。";
+  return "低コストで高い効果を発揮するコストパフォーマンスの高い改善を重視します。";
+};
+
+const getInnoText = (v: number) => {
+  if (v <= 30) return "既存プロセスの改良・最適化を中心に評価します。";
+  if (v <= 60) return "改良と革新のバランスを取りつつ評価します。";
+  return "従来にない発想やアプローチによる革新的な改善を特に高く評価します。";
+};
+
+const getHighEvalPatterns = (s: number, c: number, r: number, ce: number, inn: number) => {
   const patterns: string[] = [];
-  if (speed >= 60) patterns.push("計画から実行まで2週間以内の短期改善サイクル");
-  if (speed < 60) patterns.push("リスク分析と検証を含む堅実な改善プロセス");
-  if (cross >= 70) patterns.push("3部署以上で再利用可能な標準化されたプロセス改善");
-  if (cross >= 50) patterns.push("部門間のナレッジ共有を促進する取り組み");
-  if (cross < 50) patterns.push("特定業務の深い専門性に基づく改善提案");
-  if (speed >= 70 && cross >= 70) patterns.push("全社展開を前提とした迅速なパイロット施策");
+  if (s >= 60) patterns.push("計画から実行まで2週間以内の短期改善サイクル");
+  if (s < 60) patterns.push("リスク分析と検証を含む堅実な改善プロセス");
+  if (c >= 70) patterns.push("3部署以上で再利用可能な標準化されたプロセス改善");
+  if (c >= 50) patterns.push("部門間のナレッジ共有を促進する取り組み");
+  if (c < 50) patterns.push("特定業務の深い専門性に基づく改善提案");
+  if (r >= 60) patterns.push("マニュアル化・標準化により誰でも実施可能な改善");
+  if (ce >= 60) patterns.push("最小限の投資で最大限の効果を生む改善施策");
+  if (inn >= 60) patterns.push("AIやデジタル技術を活用した革新的な業務改善");
+  if (s >= 70 && c >= 70) patterns.push("全社展開を前提とした迅速なパイロット施策");
   return patterns;
 };
 
@@ -63,15 +83,29 @@ interface HistoryEntry {
   user: string;
   speed: number;
   cross: number;
+  reproducibility: number;
+  costEfficiency: number;
+  innovation: number;
 }
 
+const TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="weight-settings"]', title: "① 評価ウェイト設定", description: "5つの評価軸それぞれのウェイト（重要度）をスライダーで調整します。数値を直接入力することもできます。", position: "right" },
+  { selector: '[data-tour="ai-simulation"]', title: "② AI評価シミュレーション", description: "設定したウェイトに基づくAIの評価スタンスと、高く評価される行動パターンがリアルタイムでプレビューされます。", position: "left" },
+  { selector: '[data-tour="score-preview"]', title: "③ スコア変動プレビュー", description: "ウェイトを変更すると、既存の改善案のスコアがどう変わるかプレビュー表示されます（変更時のみ表示）。", position: "bottom" },
+  { selector: '[data-tour="test-cases"]', title: "④ テストケースで確認", description: "現在の設定でサンプル改善案を評価した結果をシミュレーションで確認できます。", position: "bottom" },
+  { selector: '[data-tour="save-button"]', title: "⑤ 設定を保存", description: "保存するとAIが全改善案のインパクトスコアを新しいウェイトで再計算します。結果はインパクトの見える化に即時反映されます。", position: "bottom" },
+  { selector: '[data-tour="history-button"]', title: "⑥ 変更履歴", description: "過去の設定変更（日時・変更者・各ウェイト値）を確認できます。", position: "bottom" },
+];
 
 const EvaluationSettings = () => {
   const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore, refreshItems } = useKaios();
   const [speed, setSpeed] = useState(evalSettings.speed);
   const [crossFunctional, setCrossFunctional] = useState(evalSettings.crossFunctional);
-  const [savedSpeed, setSavedSpeed] = useState(evalSettings.speed);
-  const [savedCross, setSavedCross] = useState(evalSettings.crossFunctional);
+  const [reproducibilityWeight, setReproducibilityWeight] = useState(evalSettings.reproducibilityWeight);
+  const [costEfficiency, setCostEfficiency] = useState(evalSettings.costEfficiency);
+  const [innovation, setInnovation] = useState(evalSettings.innovation);
+
+  const [savedSettings, setSavedSettings] = useState({ ...evalSettings });
   const [isSaving, setIsSaving] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
@@ -88,6 +122,9 @@ const EvaluationSettings = () => {
           user: row.updated_by || "システム",
           speed: row.speed,
           cross: row.cross_functional,
+          reproducibility: row.reproducibility_weight ?? 50,
+          costEfficiency: row.cost_efficiency ?? 50,
+          innovation: row.innovation ?? 50,
         })));
       }
     } catch (e) {
@@ -95,18 +132,27 @@ const EvaluationSettings = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
+  useEffect(() => {
+    setSpeed(evalSettings.speed);
+    setCrossFunctional(evalSettings.crossFunctional);
+    setReproducibilityWeight(evalSettings.reproducibilityWeight);
+    setCostEfficiency(evalSettings.costEfficiency);
+    setInnovation(evalSettings.innovation);
+    setSavedSettings({ ...evalSettings });
+  }, [evalSettings]);
+
+  const hasChanges = speed !== savedSettings.speed || crossFunctional !== savedSettings.crossFunctional
+    || reproducibilityWeight !== savedSettings.reproducibilityWeight
+    || costEfficiency !== savedSettings.costEfficiency
+    || innovation !== savedSettings.innovation;
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Call AI edge function to recalculate all scores
       const { data, error } = await supabase.functions.invoke("recalculate-impact", {
-        body: { speed, crossFunctional },
+        body: { speed, crossFunctional, reproducibilityWeight, costEfficiency, innovation },
       });
 
       if (error) {
@@ -115,18 +161,19 @@ const EvaluationSettings = () => {
         return;
       }
 
-      // Save history entry
       await supabase.from("eval_settings_history").insert({
         speed,
         cross_functional: crossFunctional,
+        reproducibility_weight: reproducibilityWeight,
+        cost_efficiency: costEfficiency,
+        innovation,
         updated_by: "山田 太郎",
       } as any);
 
-      setSavedSpeed(speed);
-      setSavedCross(crossFunctional);
-      setEvalSettings({ speed, crossFunctional });
+      const newSettings = { speed, crossFunctional, reproducibilityWeight, costEfficiency, innovation };
+      setSavedSettings(newSettings);
+      setEvalSettings(newSettings);
 
-      // Refresh items and history
       await Promise.all([refreshItems(), fetchHistory()]);
 
       toast.success("設定を保存し、AIでスコアを再計算しました", {
@@ -140,15 +187,15 @@ const EvaluationSettings = () => {
     }
   };
 
-  // Calculate how scores would change with new settings
   const scoreChanges = kaizenItems.map(item => {
-    const currentScore = calculateImpactScore(item);
-    // Simulate new score with pending settings
-    const baseScore = 50;
-    const speedBonus = speed * 0.15;
-    const crossBonus = (item.adoptedBy.length * 8) * (crossFunctional / 100);
-    const reproBonus = item.reproducibility === "高" ? 15 : item.reproducibility === "中" ? 8 : 0;
-    const newScore = Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus));
+    const currentScore = item.impactScore;
+    const baseScore = 30;
+    const speedBonus = speed * 0.1;
+    const crossBonus = (item.adoptedBy.length * 6) * (crossFunctional / 100);
+    const reproBonus = item.reproducibility === "高" ? (reproducibilityWeight * 0.2) : item.reproducibility === "中" ? (reproducibilityWeight * 0.1) : 0;
+    const costBonus = costEfficiency * 0.08;
+    const innoBonus = innovation * 0.07;
+    const newScore = Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus + costBonus + innoBonus));
     return { item, currentScore, newScore, diff: newScore - currentScore };
   });
   const itemsWithChanges = scoreChanges.filter(s => s.diff !== 0);
@@ -157,17 +204,15 @@ const EvaluationSettings = () => {
     : 0;
 
   const handleReset = () => {
-    setSpeed(DEFAULT_SPEED);
-    setCrossFunctional(DEFAULT_CROSS);
+    setSpeed(DEFAULTS.speed);
+    setCrossFunctional(DEFAULTS.crossFunctional);
+    setReproducibilityWeight(DEFAULTS.reproducibilityWeight);
+    setCostEfficiency(DEFAULTS.costEfficiency);
+    setInnovation(DEFAULTS.innovation);
     toast.info("デフォルト値に戻しました");
   };
 
-  // Use real kaizen items for test cases
   const testCaseItems = kaizenItems.slice(0, 3);
-  const getTestScore = (item: typeof kaizenItems[0]) => {
-    const tempItem = { ...item };
-    return calculateImpactScore(tempItem);
-  };
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
@@ -177,26 +222,11 @@ const EvaluationSettings = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">評価方針設定</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              AIが現場の改善案を評価・推薦する際の「基準（価値観）」をチューニングします。自社の現在のフェーズや戦略に合わせて、どの要素を高く評価するかを設定してください。
+              AIが現場の改善案を評価・推薦する際の「基準（価値観）」をチューニングします。5つの評価軸のウェイトを設定してください。
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <PageHelpGuide
-              title="評価方針設定 — 使い方"
-              overview="AIが改善案のインパクトスコアを算出する際の評価基準（ウェイト）をチューニングするページです。ここで設定した方針は、すべての改善案のスコア計算と推薦ロジックに反映されます。"
-              steps={[
-                { icon: "⚙️", title: "ウェイトを調整", description: "「迅速な実行(Speed)」と「部門横断での有効性(Cross-functional)」の2軸をスライダーで調整します。右側のAIシミュレーションで評価スタンスがリアルタイムに確認できます。" },
-                { icon: "🔬", title: "テストケースで確認", description: "「テストケースで確認」ボタンで、現在の設定が既存の改善案にどう影響するかシミュレーションできます。" },
-                { icon: "💾", title: "設定を保存", description: "「設定を保存」を押すと、AIが全改善案のインパクトスコアを新しい方針で再計算します。", result: "インパクトの見える化ページのスコア・ランキングが更新されます" },
-                { icon: "📜", title: "変更履歴を確認", description: "「変更履歴を見る」で過去の設定変更（日時・変更者・設定値）を確認できます。" },
-              ]}
-              tips={[
-                "KAIOSの推奨フロー: ① 評価方針設定 → ② 提案者管理 → ③ 改善入力と整理 → ④ インパクトの見える化",
-                "Speed を高くすると、素早く実行された改善が高評価になります。",
-                "Cross-functional を高くすると、多くの部署に波及する改善が高評価になります。",
-                "設定変更後は全件AIで再計算されるため、数秒〜数十秒かかる場合があります。",
-              ]}
-            />
+            <UITour steps={TOUR_STEPS} tourKey="eval-settings" />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
@@ -208,7 +238,7 @@ const EvaluationSettings = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>デフォルトに戻しますか？</AlertDialogTitle>
                   <AlertDialogDescription>
-                    すべての評価ウェイトがデフォルト値（Speed: {DEFAULT_SPEED}%, Cross-functional: {DEFAULT_CROSS}%）にリセットされます。この操作は保存するまで確定しません。
+                    すべての評価ウェイトがデフォルト値（各50%）にリセットされます。保存するまで確定しません。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -218,10 +248,9 @@ const EvaluationSettings = () => {
               </AlertDialogContent>
             </AlertDialog>
 
-            {/* Test Cases Dialog */}
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
+                <Button variant="outline" size="sm" className="gap-1.5" data-tour="test-cases">
                   <Play className="w-4 h-4" />
                   テストケースで確認
                 </Button>
@@ -231,11 +260,11 @@ const EvaluationSettings = () => {
                   <DialogTitle>テストケースでの評価シミュレーション</DialogTitle>
                 </DialogHeader>
                 <p className="text-sm text-muted-foreground">
-                  現在の設定（Speed: {speed}%, Cross-functional: {crossFunctional}%）でサンプル改善案を評価した結果：
+                  現在の設定でサンプル改善案を評価した結果：
                 </p>
                 <div className="space-y-3 mt-2">
                   {testCaseItems.map((tc, i) => {
-                    const score = getTestScore(tc);
+                    const score = calculateImpactScore(tc);
                     return (
                       <div key={i} className="p-4 rounded-lg border border-border bg-muted/30">
                         <div className="flex items-center justify-between mb-1">
@@ -248,16 +277,17 @@ const EvaluationSettings = () => {
                       </div>
                     );
                   })}
+                  {testCaseItems.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">改善案が登録されていません</p>
+                  )}
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">閉じる</Button>
-                  </DialogClose>
+                  <DialogClose asChild><Button variant="outline">閉じる</Button></DialogClose>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
 
-            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving}>
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving} data-tour="save-button">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {isSaving ? "AI再計算中..." : "設定を保存"}
             </Button>
@@ -269,44 +299,46 @@ const EvaluationSettings = () => {
           <AlertTriangle className="w-5 h-5 text-kaios-warning-text shrink-0 mt-0.5" />
           <p className="text-sm text-kaios-warning-text">
             <strong>適用範囲と権限について：</strong>
-            この設定は「改善入力の自動評価」「類似事例の推薦アルゴリズム」「インパクトの算出」に全社的に反映されます。変更できるのは「システム管理者」および「経営企画部」のみです。
+            この設定は「改善入力の自動評価」「類似事例の推薦アルゴリズム」「インパクトの算出」に全社的に反映されます。
           </p>
         </div>
 
-        {/* Score Impact Preview - shows when settings changed */}
-        {hasChanges && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      スコア変動プレビュー: {itemsWithChanges.length}件 / {kaizenItems.length}件 のスコアが変動
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      平均スコア変動: <span className={avgDiff > 0 ? "text-kaios-success font-bold" : avgDiff < 0 ? "text-destructive font-bold" : ""}>
-                        {avgDiff > 0 ? "+" : ""}{avgDiff}pt
-                      </span>
-                      {" "}— 保存するとインパクト見える化に即時反映されます
-                    </p>
+        {/* Score Impact Preview */}
+        <div data-tour="score-preview">
+          {hasChanges && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        スコア変動プレビュー: {itemsWithChanges.length}件 / {kaizenItems.length}件 のスコアが変動
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        平均スコア変動: <span className={avgDiff > 0 ? "text-kaios-success font-bold" : avgDiff < 0 ? "text-destructive font-bold" : ""}>
+                          {avgDiff > 0 ? "+" : ""}{avgDiff}pt
+                        </span>
+                        {" "}— 保存するとインパクト見える化に即時反映されます
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: Weight Settings */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7" data-tour="weight-settings">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <CardTitle className="text-lg">評価ウェイト設定</CardTitle>
+                <CardTitle className="text-lg">評価ウェイト設定（5軸）</CardTitle>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <button className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+                    <button className="flex items-center gap-1.5 text-sm text-primary hover:underline" data-tour="history-button">
                       <History className="w-4 h-4" />
                       変更履歴を見る
                     </button>
@@ -315,54 +347,70 @@ const EvaluationSettings = () => {
                     <DialogHeader>
                       <DialogTitle>変更履歴</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3 mt-2">
+                    <div className="space-y-3 mt-2 max-h-[400px] overflow-auto">
                       {history.length > 0 ? history.map((entry, i) => (
                         <div key={i} className="p-3 rounded-lg border border-border bg-muted/30 text-sm">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-foreground">{entry.user}</span>
                             <span className="text-xs text-muted-foreground">{entry.date}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Speed: {entry.speed}% / Cross-functional: {entry.cross}%
-                          </p>
+                          <div className="text-xs text-muted-foreground space-y-0.5">
+                            <p>Speed: {entry.speed}% / Cross: {entry.cross}% / 再現性: {entry.reproducibility}%</p>
+                            <p>コスト効率: {entry.costEfficiency}% / 革新性: {entry.innovation}%</p>
+                          </div>
                         </div>
                       )) : (
                         <p className="text-sm text-muted-foreground text-center py-4">変更履歴はまだありません</p>
                       )}
                     </div>
                     <DialogFooter>
-                      <DialogClose asChild>
-                        <Button variant="outline">閉じる</Button>
-                      </DialogClose>
+                      <DialogClose asChild><Button variant="outline">閉じる</Button></DialogClose>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </CardHeader>
-              <CardContent className="space-y-8">
+              <CardContent className="space-y-6">
                 <SliderParam
                   title="迅速な実行 (Speed)"
                   tooltip="計画から実行までのリードタイムの短さを評価する度合い"
                   description="計画から実行までのリードタイムの短さをどれだけ評価するか"
-                  value={speed}
-                  onChange={setSpeed}
-                  leftLabel="慎重・確実重視 (0%)"
-                  rightLabel="超高速重視 (100%)"
+                  value={speed} onChange={setSpeed}
+                  leftLabel="慎重・確実重視 (0%)" rightLabel="超高速重視 (100%)"
                 />
                 <SliderParam
                   title="部門横断での有効性 (Cross-functional)"
                   tooltip="他部署への波及効果や再利用性を評価する度合い"
                   description="他部署への波及効果や再利用性をどれだけ評価するか"
-                  value={crossFunctional}
-                  onChange={setCrossFunctional}
-                  leftLabel="個別最適 (0%)"
-                  rightLabel="全社最適 (100%)"
+                  value={crossFunctional} onChange={setCrossFunctional}
+                  leftLabel="個別最適 (0%)" rightLabel="全社最適 (100%)"
+                />
+                <SliderParam
+                  title="再現性の重視 (Reproducibility)"
+                  tooltip="改善の標準化・横展開のしやすさを評価する度合い"
+                  description="標準化・マニュアル化により他でも再現できる改善をどれだけ評価するか"
+                  value={reproducibilityWeight} onChange={setReproducibilityWeight}
+                  leftLabel="一回限りでもOK (0%)" rightLabel="高い再現性重視 (100%)"
+                />
+                <SliderParam
+                  title="コスト効率 (Cost Efficiency)"
+                  tooltip="低コストで高い効果を発揮する改善を評価する度合い"
+                  description="投資対効果（ROI）の高さをどれだけ評価するか"
+                  value={costEfficiency} onChange={setCostEfficiency}
+                  leftLabel="効果重視 (0%)" rightLabel="高ROI重視 (100%)"
+                />
+                <SliderParam
+                  title="革新性 (Innovation)"
+                  tooltip="従来にない発想やアプローチを評価する度合い"
+                  description="既存の改良だけでなく、新しいアプローチによる改善をどれだけ評価するか"
+                  value={innovation} onChange={setInnovation}
+                  leftLabel="改良型重視 (0%)" rightLabel="革新型重視 (100%)"
                 />
               </CardContent>
             </Card>
           </div>
 
           {/* Right: AI Simulation */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5" data-tour="ai-simulation">
             <Card className="bg-kaios-dark border-kaios-dark-border text-primary-foreground shadow-xl">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -379,9 +427,10 @@ const EvaluationSettings = () => {
                   </h4>
                   <p className="text-sm leading-relaxed text-blue-100/80">
                     {getSpeedText(speed)}
-                    また、部門横断での有効性が
-                    <span className="text-primary font-bold mx-1">{crossFunctional}%</span>
-                    に設定されているため、{getCrossText(crossFunctional)}
+                    {getCrossText(crossFunctional)}
+                    {getReproText(reproducibilityWeight)}
+                    {getCostText(costEfficiency)}
+                    {getInnoText(innovation)}
                   </p>
                 </div>
 
@@ -390,7 +439,7 @@ const EvaluationSettings = () => {
                     高く評価される行動パターン
                   </h4>
                   <ul className="space-y-2.5">
-                    {getHighEvalPatterns(speed, crossFunctional).map((pattern, i) => (
+                    {getHighEvalPatterns(speed, crossFunctional, reproducibilityWeight, costEfficiency, innovation).map((pattern, i) => (
                       <li key={i} className="flex items-start gap-2.5 text-sm text-blue-100/70">
                         <CheckCircle2 className="w-4 h-4 text-kaios-success shrink-0 mt-0.5" />
                         {pattern}
@@ -399,15 +448,19 @@ const EvaluationSettings = () => {
                   </ul>
                 </div>
 
-                <div className="flex gap-3">
-                  <div className="flex-1 rounded-lg bg-kaios-dark-card border border-kaios-dark-border p-3 text-center">
-                    <div className="text-2xl font-bold text-primary">{speed}%</div>
-                    <div className="text-xs text-muted-foreground mt-1">Speed</div>
-                  </div>
-                  <div className="flex-1 rounded-lg bg-kaios-dark-card border border-kaios-dark-border p-3 text-center">
-                    <div className="text-2xl font-bold text-primary">{crossFunctional}%</div>
-                    <div className="text-xs text-muted-foreground mt-1">Cross-functional</div>
-                  </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { label: "Speed", value: speed },
+                    { label: "Cross", value: crossFunctional },
+                    { label: "再現性", value: reproducibilityWeight },
+                    { label: "コスト効率", value: costEfficiency },
+                    { label: "革新性", value: innovation },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-lg bg-kaios-dark-card border border-kaios-dark-border p-2 text-center">
+                      <div className="text-lg font-bold text-primary">{value}%</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -442,27 +495,15 @@ const SliderParam = ({ title, tooltip, description, value, onChange, leftLabel, 
       </div>
       <div className="flex items-center gap-1">
         <Input
-          type="number"
-          min={0}
-          max={100}
-          value={value}
-          onChange={(e) => {
-            const v = Math.min(100, Math.max(0, Number(e.target.value)));
-            onChange(v);
-          }}
+          type="number" min={0} max={100} value={value}
+          onChange={(e) => onChange(Math.min(100, Math.max(0, Number(e.target.value))))}
           className="w-16 h-8 text-center text-sm font-medium"
         />
         <span className="text-sm text-muted-foreground">%</span>
       </div>
     </div>
     <p className="text-xs text-muted-foreground">{description}</p>
-    <Slider
-      value={[value]}
-      onValueChange={([v]) => onChange(v)}
-      max={100}
-      step={1}
-      className="w-full"
-    />
+    <Slider value={[value]} onValueChange={([v]) => onChange(v)} max={100} step={1} className="w-full" />
     <div className="flex justify-between text-xs text-muted-foreground">
       <span>{leftLabel}</span>
       <span>{rightLabel}</span>
