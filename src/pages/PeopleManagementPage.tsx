@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useKaios, type Person } from "@/contexts/KaiosContext";
+import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 import {
   Dialog,
   DialogContent,
