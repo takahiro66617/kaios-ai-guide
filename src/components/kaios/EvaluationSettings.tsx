@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 import {
   Dialog,
   DialogContent,
@@ -180,6 +181,22 @@ const EvaluationSettings = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <PageHelpGuide
+              title="評価方針設定 — 使い方"
+              overview="AIが改善案のインパクトスコアを算出する際の評価基準（ウェイト）をチューニングするページです。ここで設定した方針は、すべての改善案のスコア計算と推薦ロジックに反映されます。"
+              steps={[
+                { icon: "⚙️", title: "ウェイトを調整", description: "「迅速な実行(Speed)」と「部門横断での有効性(Cross-functional)」の2軸をスライダーで調整します。右側のAIシミュレーションで評価スタンスがリアルタイムに確認できます。" },
+                { icon: "🔬", title: "テストケースで確認", description: "「テストケースで確認」ボタンで、現在の設定が既存の改善案にどう影響するかシミュレーションできます。" },
+                { icon: "💾", title: "設定を保存", description: "「設定を保存」を押すと、AIが全改善案のインパクトスコアを新しい方針で再計算します。", result: "インパクトの見える化ページのスコア・ランキングが更新されます" },
+                { icon: "📜", title: "変更履歴を確認", description: "「変更履歴を見る」で過去の設定変更（日時・変更者・設定値）を確認できます。" },
+              ]}
+              tips={[
+                "KAIOSの推奨フロー: ① 評価方針設定 → ② 提案者管理 → ③ 改善入力と整理 → ④ インパクトの見える化",
+                "Speed を高くすると、素早く実行された改善が高評価になります。",
+                "Cross-functional を高くすると、多くの部署に波及する改善が高評価になります。",
+                "設定変更後は全件AIで再計算されるため、数秒〜数十秒かかる場合があります。",
+              ]}
+            />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">

@@ -1,4 +1,4 @@
-import { Sparkles, MessageSquare, BookmarkPlus, ChevronRight, Building2, Clock, ArrowRight } from "lucide-react";
+import { Sparkles, BookmarkPlus, ChevronRight, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,18 +68,8 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
           <div className="flex-1">
             <h2 className="text-xl font-bold text-foreground">{person.name}</h2>
             <p className="text-sm text-muted-foreground">
-              {person.department}　・　入社{person.yearsAtCompany}年目
+              {person.department}　・　{person.role || "メンバー"}　・　入社{person.yearsAtCompany}年目
             </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <MessageSquare className="w-4 h-4" />
-              1on1の話題を作る
-            </Button>
-            <Button size="sm" className="gap-1.5">
-              <BookmarkPlus className="w-4 h-4" />
-              育成メモを保存
-            </Button>
           </div>
         </div>
 

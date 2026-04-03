@@ -27,6 +27,7 @@ import {
 import { useKaios, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import { useNavigate } from "react-router-dom";
+import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 
 const COLORS = [
   "hsl(217, 91%, 60%)",
@@ -201,6 +202,22 @@ const ImpactPage = () => {
               改善活動が組織に与えるインパクトをリアルタイムで可視化します。
             </p>
           </div>
+          <PageHelpGuide
+            title="インパクトの見える化 — 使い方"
+            overview="登録された改善案のインパクトスコア、部門別統計、トップ貢献者などを多角的に可視化するダッシュボードです。評価方針設定で保存したウェイトに基づいてAIがスコアを算出しています。"
+            steps={[
+              { icon: "📊", title: "KPI概要を確認", description: "ページ上部に総改善案数、平均インパクトスコア、参加部門数、完了率が表示されます。", result: "組織全体の改善活動の健全性が一目で把握できます" },
+              { icon: "🔍", title: "フィルタで絞り込み", description: "部門、期間、ステータス、ソート順で表示データを絞り込めます。特定部門や期間の分析に便利です。", result: "フィルタに連動してすべてのグラフ・統計が再計算されます" },
+              { icon: "📈", title: "グラフで傾向を把握", description: "部門別の改善件数・平均スコアの棒グラフ、カテゴリ分布の円グラフで全体傾向を分析します。" },
+              { icon: "🏆", title: "トップ貢献者を確認", description: "スコアの高い改善案を多く出している人物をランキング表示。クリックすると詳細が見られます。", result: "1on1のテーマや評価材料として活用できます" },
+              { icon: "⭐", title: "高インパクト改善案を確認", description: "スコア上位の改善案を一覧表示。「すべて見る」で類似事例検索ページへ遷移します。" },
+            ]}
+            tips={[
+              "スコアは「評価方針設定」ページのウェイトに基づいてAIが算出しています。方針を変更して保存すると全件再計算されます。",
+              "改善案が0件の場合はデータが表示されません。まず「改善入力と整理」から改善案を登録してください。",
+              "トップ貢献者をクリックすると、その人の改善活動の詳細とAIインサイトが確認できます。",
+            ]}
+          />
         </div>
 
         {/* Eval Settings Banner */}
