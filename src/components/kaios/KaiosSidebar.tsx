@@ -1,4 +1,4 @@
-import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users } from "lucide-react";
+import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users, Bug } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
@@ -7,6 +7,7 @@ const menuItems = [
   { title: "改善入力と整理", subtitle: "現場の気づきを構造化", icon: Lightbulb, path: "/kaizen-input" },
   { title: "類似事例を探す", subtitle: "過去のナレッジを検索", icon: Search, path: "/similar-cases" },
   { title: "インパクトの見える化", subtitle: "組織への貢献度を可視化", icon: BarChart3, path: "/impact" },
+  { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
 ];
 
 interface KaiosSidebarProps {
