@@ -38,6 +38,9 @@ export interface KaizenItem {
 export interface EvalSettings {
   speed: number;
   crossFunctional: number;
+  reproducibilityWeight: number;
+  costEfficiency: number;
+  innovation: number;
 }
 
 // Helper to map DB row to Person
