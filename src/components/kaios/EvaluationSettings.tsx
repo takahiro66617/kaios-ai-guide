@@ -250,14 +250,14 @@ const EvaluationSettings = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 {evalAxes.map(axis => (
-                  <div key={axis.id} className={`space-y-3 p-4 rounded-lg border ${axis.isActive ? "border-border bg-background" : "border-dashed border-muted-foreground/30 bg-muted/20 opacity-60"}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="w-4 h-4 text-muted-foreground" />
-                        <h3 className="text-sm font-semibold text-foreground">{axis.name}</h3>
+                  <div key={axis.id} className={`space-y-3 p-3 sm:p-4 rounded-lg border ${axis.isActive ? "border-border bg-background" : "border-dashed border-muted-foreground/30 bg-muted/20 opacity-60"}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <GripVertical className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
+                        <h3 className="text-sm font-semibold text-foreground truncate">{axis.name}</h3>
                         <Tooltip>
-                          <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground" /></TooltipTrigger>
-                          <TooltipContent>{axis.tooltip || axis.description}</TooltipContent>
+                          <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground shrink-0" /></TooltipTrigger>
+                          <TooltipContent className="max-w-[250px]">{axis.tooltip || axis.description}</TooltipContent>
                         </Tooltip>
                         {!axis.isActive && <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">無効</span>}
                       </div>
