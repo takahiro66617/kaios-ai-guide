@@ -179,9 +179,9 @@ const ImpactPage = () => {
   // High impact items
   const highImpactItems = useMemo(() => {
     return [...filteredItems]
-      .sort((a, b) => calculateImpactScore(b) - calculateImpactScore(a))
+      .sort((a, b) => b.impactScore - a.impactScore)
       .slice(0, 5);
-  }, [filteredItems, calculateImpactScore]);
+  }, [filteredItems]);
 
   const handlePersonClick = (person: Person) => {
     setSelectedPerson(person);
