@@ -85,9 +85,25 @@ const EvaluationSettings = () => {
     setSavedCross(crossFunctional);
     setEvalSettings({ speed, crossFunctional });
     toast.success("設定を保存しました", {
-      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}% — 全${kaizenItems.length}件の改善案のスコアが再計算されます`,
+      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}% — 全${kaizenItems.length}件の改善案のスコアが再計算され、インパクト見える化に反映されます`,
     });
   };
+
+  // Calculate how scores would change with new settings
+  const scoreChanges = kaizenItems.map(item => {
+    const currentScore = calculateImpactScore(item);
+    // Simulate new score with pending settings
+    const baseScore = 50;
+    const speedBonus = speed * 0.15;
+    const crossBonus = (item.adoptedBy.length * 8) * (crossFunctional / 100);
+    const reproBonus = item.reproducibility === "高" ? 15 : item.reproducibility === "中" ? 8 : 0;
+    const newScore = Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus));
+    return { item, currentScore, newScore, diff: newScore - currentScore };
+  });
+  const itemsWithChanges = scoreChanges.filter(s => s.diff !== 0);
+  const avgDiff = itemsWithChanges.length > 0
+    ? Math.round(itemsWithChanges.reduce((s, c) => s + c.diff, 0) / itemsWithChanges.length)
+    : 0;
 
   const handleReset = () => {
     setSpeed(DEFAULT_SPEED);
