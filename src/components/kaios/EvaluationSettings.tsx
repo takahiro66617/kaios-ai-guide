@@ -70,18 +70,6 @@ const mockHistory: HistoryEntry[] = [
   { date: "2026-03-01 11:45", user: "鈴木 一郎", speed: 40, cross: 60 },
 ];
 
-const testCases = [
-  {
-    title: "営業報告書の自動生成",
-    dept: "営業部",
-    description: "CRMデータから営業報告書を自動生成し、工数を80%削減。",
-  },
-  {
-    title: "製造ラインの予防保全",
-    dept: "製造部",
-    description: "IoTセンサーデータをAIで分析し、故障予測精度を向上。",
-  },
-];
 
 const EvaluationSettings = () => {
   const { evalSettings, setEvalSettings, kaizenItems, calculateImpactScore } = useKaios();
@@ -107,12 +95,11 @@ const EvaluationSettings = () => {
     toast.info("デフォルト値に戻しました");
   };
 
-  const getTestScore = (tc: typeof testCases[0]) => {
-    // Simple mock scoring based on current weights
-    const base = 60;
-    const speedBonus = tc.dept === "営業部" ? speed * 0.15 : speed * 0.08;
-    const crossBonus = tc.dept === "製造部" ? crossFunctional * 0.1 : crossFunctional * 0.12;
-    return Math.min(100, Math.round(base + speedBonus + crossBonus) / 2);
+  // Use real kaizen items for test cases
+  const testCaseItems = kaizenItems.slice(0, 3);
+  const getTestScore = (item: typeof kaizenItems[0]) => {
+    const tempItem = { ...item };
+    return calculateImpactScore(tempItem);
   };
 
   return (
