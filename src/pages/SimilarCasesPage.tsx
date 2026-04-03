@@ -133,7 +133,7 @@ const SimilarCasesPage = () => {
                   disabled={isSearching}
                 />
               </div>
-              <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="gap-1.5">
+              <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="gap-1.5" data-tour="search-button">
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 AI検索
               </Button>
