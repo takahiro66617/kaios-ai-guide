@@ -123,20 +123,8 @@ const PeopleManagementPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <PageHelpGuide
-              title="提案者管理 — 使い方"
-              overview="改善案の提案者（メンバー）を登録・管理するページです。ここで登録したメンバーが「改善入力と整理」ページの提案者選択に表示されます。"
-              steps={[
-                { icon: "➕", title: "提案者を追加", description: "「提案者を追加」ボタンで名前・部門・役職・入社年数を入力して新しいメンバーを登録します。", result: "登録したメンバーは即座に改善入力ページの提案者一覧に反映されます" },
-                { icon: "✏️", title: "情報を編集", description: "各メンバーの鉛筆アイコンで部門・役職などの情報を編集できます。" },
-                { icon: "🗑️", title: "メンバーを削除", description: "ゴミ箱アイコンでメンバーを削除できます。紐づいた改善案は残ります。" },
-              ]}
-              tips={[
-                "改善案を登録する前に、まず提案者を追加してください。",
-                "部門は改善案の部門統計やインパクトの見える化に連動します。",
-              ]}
-            />
-            <Button className="gap-1.5" onClick={openAddDialog}>
+            <UITour steps={PEOPLE_TOUR_STEPS} tourKey="people" />
+            <Button className="gap-1.5" onClick={openAddDialog} data-tour="add-person">
               <UserPlus className="w-4 h-4" />
               提案者を追加
             </Button>
