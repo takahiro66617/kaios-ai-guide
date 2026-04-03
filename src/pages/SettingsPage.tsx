@@ -11,7 +11,7 @@ const SettingsPage = () => {
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
-      <div className="p-6 max-w-[800px] mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-[800px] mx-auto space-y-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
