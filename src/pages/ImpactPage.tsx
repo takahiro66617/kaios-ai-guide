@@ -132,7 +132,7 @@ const ImpactPage = () => {
       count: data.count,
       impact: Math.round(data.totalImpact / data.count),
     })).sort((a, b) => b.count - a.count);
-  }, [filteredItems, calculateImpactScore]);
+  }, [filteredItems]);
 
   // Category data
   const categoryData = useMemo(() => {
