@@ -114,12 +114,19 @@ const EvaluationSettings = () => {
         return;
       }
 
+      // Save history entry
+      await supabase.from("eval_settings_history").insert({
+        speed,
+        cross_functional: crossFunctional,
+        updated_by: "山田 太郎",
+      } as any);
+
       setSavedSpeed(speed);
       setSavedCross(crossFunctional);
       setEvalSettings({ speed, crossFunctional });
 
-      // Refresh items to get updated scores from DB
-      await refreshItems();
+      // Refresh items and history
+      await Promise.all([refreshItems(), fetchHistory()]);
 
       toast.success("設定を保存し、AIでスコアを再計算しました", {
         description: `${data?.updated ?? 0}件の改善案のインパクトスコアが更新されました`,
