@@ -27,7 +27,15 @@ import {
 import { useKaios, type Person } from "@/contexts/KaiosContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import { useNavigate } from "react-router-dom";
-import PageHelpGuide from "@/components/kaios/PageHelpGuide";
+import UITour, { type TourStep } from "@/components/kaios/UITour";
+
+const IMPACT_TOUR_STEPS: TourStep[] = [
+  { selector: '[data-tour="eval-banner"]', title: "① 評価方針バナー", description: "現在のAI評価ウェイト（5軸）が表示されています。「評価方針を変更」でウェイトを調整できます。", position: "bottom" },
+  { selector: '[data-tour="filter-bar"]', title: "② フィルター", description: "部門、期間、ステータス、ソートで表示データを絞り込めます。全てのグラフ・統計が連動します。", position: "bottom" },
+  { selector: '[data-tour="kpi-cards"]', title: "③ KPI概要", description: "総改善案数、平均スコア、参加部門数、完了率が一目で確認できます。", position: "bottom" },
+  { selector: '[data-tour="charts"]', title: "④ グラフ分析", description: "部門別の改善件数・スコアの棒グラフ、カテゴリ分布の円グラフで傾向を把握します。", position: "top" },
+  { selector: '[data-tour="top-contributors"]', title: "⑤ トップ貢献者", description: "スコアの高い改善案を出している人物のランキング。クリックで詳細確認できます。", position: "right" },
+];
 
 const COLORS = [
   "hsl(217, 91%, 60%)",
