@@ -1,35 +1,38 @@
 import { Settings, Lightbulb, Search, BarChart3, Sparkles } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
   {
     title: "評価方針設定",
     subtitle: "AIの評価基準をチューニング",
     icon: Sparkles,
-    active: true,
+    path: "/",
   },
   {
     title: "改善入力と整理",
     subtitle: "現場の気づきを構造化",
     icon: Lightbulb,
-    active: false,
+    path: "/kaizen-input",
   },
   {
     title: "類似事例を探す",
     subtitle: "過去のナレッジを検索",
     icon: Search,
-    active: false,
+    path: "/similar-cases",
   },
   {
     title: "インパクトの見える化",
     subtitle: "組織への貢献度を可視化",
     icon: BarChart3,
-    active: false,
+    path: "/impact",
   },
 ];
 
 const KaiosSidebar = () => {
+  const location = useLocation();
+
   return (
-    <aside className="w-[250px] min-h-screen bg-card border-r border-border flex flex-col">
+    <aside className="w-[250px] min-h-screen bg-card border-r border-border flex flex-col shrink-0">
       {/* Logo */}
       <div className="p-5 flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
@@ -40,24 +43,28 @@ const KaiosSidebar = () => {
 
       {/* Menu */}
       <nav className="flex-1 px-3 py-2 space-y-1">
-        {menuItems.map((item) => (
-          <button
-            key={item.title}
-            className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
-              item.active
-                ? "bg-kaios-brand-light text-sidebar-accent-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <item.icon className={`w-5 h-5 mt-0.5 shrink-0 ${item.active ? "text-primary" : ""}`} />
-            <div>
-              <div className={`text-sm font-medium ${item.active ? "text-primary" : "text-foreground"}`}>
-                {item.title}
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.title}
+              to={item.path}
+              className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                isActive
+                  ? "bg-kaios-brand-light text-sidebar-accent-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <item.icon className={`w-5 h-5 mt-0.5 shrink-0 ${isActive ? "text-primary" : ""}`} />
+              <div>
+                <div className={`text-sm font-medium ${isActive ? "text-primary" : "text-foreground"}`}>
+                  {item.title}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
-            </div>
-          </button>
-        ))}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* User Profile */}
@@ -69,9 +76,9 @@ const KaiosSidebar = () => {
           <div className="text-sm font-medium text-foreground truncate">山田 太郎</div>
           <div className="text-xs text-muted-foreground">システム管理者</div>
         </div>
-        <button className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link to="/settings" className="text-muted-foreground hover:text-foreground transition-colors">
           <Settings className="w-4 h-4" />
-        </button>
+        </Link>
       </div>
     </aside>
   );
