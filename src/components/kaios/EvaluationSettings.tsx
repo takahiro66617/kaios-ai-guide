@@ -1,10 +1,34 @@
 import { useState } from "react";
-import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+const DEFAULT_SPEED = 50;
+const DEFAULT_CROSS = 50;
 
 const getSpeedText = (v: number) => {
   if (v <= 30) return "慎重かつ確実なプロセスを最優先し、十分な検証を経た改善を高く評価します。";
@@ -31,9 +55,62 @@ const getHighEvalPatterns = (speed: number, cross: number) => {
   return patterns;
 };
 
+interface HistoryEntry {
+  date: string;
+  user: string;
+  speed: number;
+  cross: number;
+}
+
+const mockHistory: HistoryEntry[] = [
+  { date: "2026-04-03 10:30", user: "山田 太郎", speed: 70, cross: 85 },
+  { date: "2026-03-28 14:15", user: "佐藤 花子", speed: 60, cross: 75 },
+  { date: "2026-03-15 09:00", user: "山田 太郎", speed: 50, cross: 50 },
+  { date: "2026-03-01 11:45", user: "鈴木 一郎", speed: 40, cross: 60 },
+];
+
+const testCases = [
+  {
+    title: "営業報告書の自動生成",
+    dept: "営業部",
+    description: "CRMデータから営業報告書を自動生成し、工数を80%削減。",
+  },
+  {
+    title: "製造ラインの予防保全",
+    dept: "製造部",
+    description: "IoTセンサーデータをAIで分析し、故障予測精度を向上。",
+  },
+];
+
 const EvaluationSettings = () => {
   const [speed, setSpeed] = useState(70);
   const [crossFunctional, setCrossFunctional] = useState(85);
+  const [savedSpeed, setSavedSpeed] = useState(70);
+  const [savedCross, setSavedCross] = useState(85);
+
+  const hasChanges = speed !== savedSpeed || crossFunctional !== savedCross;
+
+  const handleSave = () => {
+    setSavedSpeed(speed);
+    setSavedCross(crossFunctional);
+    toast.success("設定を保存しました", {
+      description: `Speed: ${speed}%, Cross-functional: ${crossFunctional}%`,
+    });
+  };
+
+  const handleReset = () => {
+    setSpeed(DEFAULT_SPEED);
+    setCrossFunctional(DEFAULT_CROSS);
+    toast.info("デフォルト値に戻しました");
+  };
+
+  const getTestScore = (tc: typeof testCases[0]) => {
+    // Simple mock scoring based on current weights
+    const base = 60;
+    const speedBonus = tc.dept === "営業部" ? speed * 0.15 : speed * 0.08;
+    const crossBonus = tc.dept === "製造部" ? crossFunctional * 0.1 : crossFunctional * 0.12;
+    return Math.min(100, Math.round(base + speedBonus + crossBonus) / 2);
+  };
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
@@ -47,15 +124,67 @@ const EvaluationSettings = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <RefreshCw className="w-4 h-4" />
-              デフォルトに戻す
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Play className="w-4 h-4" />
-              テストケースで確認
-            </Button>
-            <Button size="sm" className="gap-1.5">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <RefreshCw className="w-4 h-4" />
+                  デフォルトに戻す
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>デフォルトに戻しますか？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    すべての評価ウェイトがデフォルト値（Speed: {DEFAULT_SPEED}%, Cross-functional: {DEFAULT_CROSS}%）にリセットされます。この操作は保存するまで確定しません。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReset}>リセット</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Test Cases Dialog */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Play className="w-4 h-4" />
+                  テストケースで確認
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>テストケースでの評価シミュレーション</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  現在の設定（Speed: {speed}%, Cross-functional: {crossFunctional}%）でサンプル改善案を評価した結果：
+                </p>
+                <div className="space-y-3 mt-2">
+                  {testCases.map((tc, i) => {
+                    const score = getTestScore(tc);
+                    return (
+                      <div key={i} className="p-4 rounded-lg border border-border bg-muted/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="text-sm font-semibold text-foreground">{tc.title}</h4>
+                          <span className={`text-lg font-bold ${score >= 70 ? "text-kaios-success" : score >= 50 ? "text-primary" : "text-muted-foreground"}`}>
+                            {score}点
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{tc.dept} — {tc.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">閉じる</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges}>
               <Save className="w-4 h-4" />
               設定を保存
             </Button>
@@ -78,13 +207,39 @@ const EvaluationSettings = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-4">
                 <CardTitle className="text-lg">評価ウェイト設定</CardTitle>
-                <button className="flex items-center gap-1.5 text-sm text-primary hover:underline">
-                  <History className="w-4 h-4" />
-                  変更履歴を見る
-                </button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+                      <History className="w-4 h-4" />
+                      変更履歴を見る
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>変更履歴</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 mt-2">
+                      {mockHistory.map((entry, i) => (
+                        <div key={i} className="p-3 rounded-lg border border-border bg-muted/30 text-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-foreground">{entry.user}</span>
+                            <span className="text-xs text-muted-foreground">{entry.date}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Speed: {entry.speed}% / Cross-functional: {entry.cross}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">閉じる</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent className="space-y-8">
-                {/* Speed Parameter */}
                 <SliderParam
                   title="迅速な実行 (Speed)"
                   tooltip="計画から実行までのリードタイムの短さを評価する度合い"
@@ -94,8 +249,6 @@ const EvaluationSettings = () => {
                   leftLabel="慎重・確実重視 (0%)"
                   rightLabel="超高速重視 (100%)"
                 />
-
-                {/* Cross-functional Parameter */}
                 <SliderParam
                   title="部門横断での有効性 (Cross-functional)"
                   tooltip="他部署への波及効果や再利用性を評価する度合い"
@@ -121,7 +274,6 @@ const EvaluationSettings = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Evaluation Stance */}
                 <div className="rounded-lg bg-kaios-dark-card border border-kaios-dark-border p-4">
                   <h4 className="text-xs font-bold text-primary tracking-wide uppercase mb-2">
                     基本評価スタンス
@@ -134,7 +286,6 @@ const EvaluationSettings = () => {
                   </p>
                 </div>
 
-                {/* High Eval Patterns */}
                 <div className="rounded-lg bg-kaios-dark-card border border-kaios-dark-border p-4">
                   <h4 className="text-xs font-bold text-kaios-success tracking-wide uppercase mb-3">
                     高く評価される行動パターン
@@ -149,7 +300,6 @@ const EvaluationSettings = () => {
                   </ul>
                 </div>
 
-                {/* Current Values Summary */}
                 <div className="flex gap-3">
                   <div className="flex-1 rounded-lg bg-kaios-dark-card border border-kaios-dark-border p-3 text-center">
                     <div className="text-2xl font-bold text-primary">{speed}%</div>
