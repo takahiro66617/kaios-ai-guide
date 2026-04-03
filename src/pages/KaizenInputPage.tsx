@@ -83,7 +83,6 @@ const KaizenInputPage = () => {
     return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim();
   };
 
-  // Step 1 → Step 2: Send to AI
   const handleGenerateDraft = async () => {
     if (!isStep1Valid()) { toast.error("必須項目をすべて入力してください"); return; }
     if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
@@ -107,27 +106,29 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
         setAiDraft(data.structured);
         setEditedDraft({ ...data.structured });
         toast.success("AIがドラフトを生成しました");
-      } else throw new Error("構造化データが返されませんでした");
+      } else {
+        throw new Error("構造化データが返されませんでした");
+      }
     } catch (e: any) {
       console.error("Structure error:", e);
       toast.error(e.message || "AI処理中にエラーが発生しました");
       setStep(1);
-    } finally { setIsProcessing(false); }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // Step 3: Edit draft fields
   const handleEditField = (field: string, value: string) => {
     setEditedDraft((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  // Step 4: Register to knowledge base
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!editedDraft) return;
     if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
 
     const relatedDepts = editedDraft.related_departments || [];
 
-    const newItem = addKaizenItem({
+    const savedItem = await addKaizenItem({
       title: editedDraft.title,
       problem: editedDraft.problem,
       cause: editedDraft.cause,
@@ -143,9 +144,12 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       frequency: step1Data.frequency,
       numericalEvidence: step1Data.numericalEvidence,
     });
+
+    if (!savedItem) return;
+
     setStep(4);
     toast.success("ナレッジベースに登録しました", {
-      description: `「${newItem.title}」（関連部署: ${relatedDepts.length}件）`,
+      description: `「${savedItem.title}」（関連部署: ${relatedDepts.length}件）`,
     });
   };
 
