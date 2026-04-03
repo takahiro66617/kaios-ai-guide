@@ -160,11 +160,13 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, [refreshPeople, refreshItems, refreshEvalSettings]);
 
   const calculateImpactScore = useCallback((item: KaizenItem) => {
-    const baseScore = 50;
-    const speedBonus = evalSettings.speed * 0.15;
-    const crossBonus = (item.adoptedBy.length * 8) * (evalSettings.crossFunctional / 100);
-    const reproBonus = item.reproducibility === "高" ? 15 : item.reproducibility === "中" ? 8 : 0;
-    return Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus));
+    const baseScore = 30;
+    const speedBonus = evalSettings.speed * 0.1;
+    const crossBonus = (item.adoptedBy.length * 6) * (evalSettings.crossFunctional / 100);
+    const reproBonus = item.reproducibility === "高" ? (evalSettings.reproducibilityWeight * 0.2) : item.reproducibility === "中" ? (evalSettings.reproducibilityWeight * 0.1) : 0;
+    const costBonus = evalSettings.costEfficiency * 0.08;
+    const innoBonus = evalSettings.innovation * 0.07;
+    return Math.min(100, Math.round(baseScore + speedBonus + crossBonus + reproBonus + costBonus + innoBonus));
   }, [evalSettings]);
 
   const addKaizenItem = useCallback((item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => {
