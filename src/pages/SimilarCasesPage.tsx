@@ -229,13 +229,67 @@ const SimilarCasesPage = () => {
           </div>
         )}
 
-        {!searched && (
-          <div className="text-center py-16 text-muted-foreground">
-            <FileText className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p className="text-lg font-medium mb-1">テーマや悩みを入力してAI検索</p>
-            <p className="text-sm">AIが意味的に類似する事例を自動で探し出し、なぜ参考になるかを説明します。</p>
+        {/* Knowledge Base - always visible */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              登録済みナレッジベース
+              <Badge variant="secondary" className="text-xs">{kaizenItems.length}件</Badge>
+            </h2>
           </div>
-        )}
+
+          {kaizenItems.length > 0 ? (
+            kaizenItems.map((item) => {
+              const author = getPersonById(item.authorId);
+              return (
+                <Card key={item.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+                          <Badge variant="secondary" className="text-xs">{item.status}</Badge>
+                          <span className="text-xs font-bold text-primary">{item.impactScore}pt</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{item.solution}</p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Tag className="w-3 h-3" />{item.category}</span>
+                          <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{item.department}</span>
+                          <span>{item.createdAt}</span>
+                          {author && (
+                            <button
+                              onClick={() => handlePersonClick(item.authorId)}
+                              className="flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <User className="w-3 h-3" />
+                              {author.name}
+                            </button>
+                          )}
+                          {item.adoptedBy.length > 0 && (
+                            <span className="text-kaios-success">
+                              {item.adoptedBy.length}部門で採用
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={() => setDetailItem(item)}>
+                        詳細
+                        <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">ナレッジがまだ登録されていません。</p>
+              <p className="text-xs mt-1">「改善入力と整理」ページから改善案を登録してください。</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <PersonDetailModal person={selectedPerson} open={personModalOpen} onOpenChange={setPersonModalOpen} />
