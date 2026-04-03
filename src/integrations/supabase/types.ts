@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      debug_reports: {
+        Row: {
+          comment: string | null
+          console_logs: Json | null
+          created_at: string
+          error_logs: Json | null
+          id: string
+          interaction_logs: Json | null
+          network_logs: Json | null
+          page_url: string
+          screenshot_url: string | null
+          session_id: string
+          status: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          console_logs?: Json | null
+          created_at?: string
+          error_logs?: Json | null
+          id?: string
+          interaction_logs?: Json | null
+          network_logs?: Json | null
+          page_url: string
+          screenshot_url?: string | null
+          session_id: string
+          status?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          console_logs?: Json | null
+          created_at?: string
+          error_logs?: Json | null
+          id?: string
+          interaction_logs?: Json | null
+          network_logs?: Json | null
+          page_url?: string
+          screenshot_url?: string | null
+          session_id?: string
+          status?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       eval_axes: {
         Row: {
           created_at: string
