@@ -1,4 +1,4 @@
-import { Sparkles, MessageSquare, BookmarkPlus, ChevronRight, Building2, Clock, ArrowRight } from "lucide-react";
+import { Sparkles, BookmarkPlus, ChevronRight, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
