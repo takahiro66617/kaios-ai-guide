@@ -229,7 +229,7 @@ const ImpactPage = () => {
             </div>
           </div>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/eval-settings")}
             className="flex items-center gap-1.5 text-sm text-primary hover:underline shrink-0"
           >
             <Settings className="w-4 h-4" />
