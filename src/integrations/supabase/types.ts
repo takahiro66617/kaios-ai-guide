@@ -182,6 +182,45 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_profiles: {
+        Row: {
+          consecutive_days: number
+          created_at: string
+          display_name: string
+          guest_id: string
+          id: string
+          last_active_date: string | null
+          level: number
+          total_submissions: number
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          consecutive_days?: number
+          created_at?: string
+          display_name?: string
+          guest_id: string
+          id?: string
+          last_active_date?: string | null
+          level?: number
+          total_submissions?: number
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          consecutive_days?: number
+          created_at?: string
+          display_name?: string
+          guest_id?: string
+          id?: string
+          last_active_date?: string | null
+          level?: number
+          total_submissions?: number
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       kaizen_items: {
         Row: {
           adopted_by: string[]
@@ -245,6 +284,118 @@ export type Database = {
           tags?: string[]
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      likes: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          kaizen_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          kaizen_item_id: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          kaizen_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_kaizen_item_id_fkey"
+            columns: ["kaizen_item_id"]
+            isOneToOne: false
+            referencedRelation: "kaizen_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_count: number
+          guest_id: string
+          id: string
+          is_completed: boolean
+          mission_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_count?: number
+          guest_id: string
+          id?: string
+          is_completed?: boolean
+          mission_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_count?: number
+          guest_id?: string
+          id?: string
+          is_completed?: boolean
+          mission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_progress_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          key: string
+          sort_order: number
+          target_count: number
+          title: string
+          xp_reward: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          sort_order?: number
+          target_count?: number
+          title: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          sort_order?: number
+          target_count?: number
+          title?: string
+          xp_reward?: number
         }
         Relationships: []
       }
