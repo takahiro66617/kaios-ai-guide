@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, User, Loader2, MessageSquare } from "lucide-react";
+import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, User, Loader2, MessageSquare, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
+import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import UITour, { type TourStep } from "@/components/kaios/UITour";
 
@@ -29,6 +30,7 @@ interface RankedItem extends KaizenItem {
 
 const SimilarCasesPage = () => {
   const { kaizenItems, getPersonById } = useKaios();
+  const { toggleLike, getLikeInfo } = useGuestProfile();
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<RankedItem[]>([]);
@@ -234,6 +236,7 @@ const SimilarCasesPage = () => {
           {kaizenItems.length > 0 ? (
             kaizenItems.map((item) => {
               const author = getPersonById(item.authorId);
+              const likeInfo = getLikeInfo(item.id);
               return (
                 <Card key={item.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
@@ -265,10 +268,23 @@ const SimilarCasesPage = () => {
                           )}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={() => setDetailItem(item)}>
-                        詳細
-                        <ArrowRight className="w-3 h-3" />
-                      </Button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => toggleLike(item.id)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
+                            likeInfo.likedByMe
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${likeInfo.likedByMe ? "fill-current" : ""}`} />
+                          {likeInfo.count > 0 && likeInfo.count}
+                        </button>
+                        <Button variant="outline" size="sm" className="gap-1" onClick={() => setDetailItem(item)}>
+                          詳細
+                          <ArrowRight className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

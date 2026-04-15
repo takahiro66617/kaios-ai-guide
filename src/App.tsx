@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { KaiosProvider } from "@/contexts/KaiosContext";
+import { GuestProfileProvider } from "@/contexts/GuestProfileContext";
 import { DebugModeWrapper } from "@/components/debug/DebugModeWrapper";
 import KaiosLayout from "@/components/kaios/KaiosLayout";
 import EvaluationSettings from "@/components/kaios/EvaluationSettings";
@@ -13,6 +14,8 @@ import ImpactPage from "@/pages/ImpactPage";
 import SettingsPage from "@/pages/SettingsPage";
 import PeopleManagementPage from "@/pages/PeopleManagementPage";
 import DebugReportsPage from "@/pages/DebugReportsPage";
+import DashboardPage from "@/pages/DashboardPage";
+import MissionsPage from "@/pages/MissionsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -21,24 +24,28 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <KaiosProvider>
-        <DebugModeWrapper>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route element={<KaiosLayout />}>
-                <Route path="/" element={<EvaluationSettings />} />
-                <Route path="/people" element={<PeopleManagementPage />} />
-                <Route path="/kaizen-input" element={<KaizenInputPage />} />
-                <Route path="/similar-cases" element={<SimilarCasesPage />} />
-                <Route path="/impact" element={<ImpactPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/debug-reports" element={<DebugReportsPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </DebugModeWrapper>
+        <GuestProfileProvider>
+          <DebugModeWrapper>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route element={<KaiosLayout />}>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/kaizen-input" element={<KaizenInputPage />} />
+                  <Route path="/similar-cases" element={<SimilarCasesPage />} />
+                  <Route path="/impact" element={<ImpactPage />} />
+                  <Route path="/missions" element={<MissionsPage />} />
+                  <Route path="/eval-settings" element={<EvaluationSettings />} />
+                  <Route path="/people" element={<PeopleManagementPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/debug-reports" element={<DebugReportsPage />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </DebugModeWrapper>
+        </GuestProfileProvider>
       </KaiosProvider>
     </TooltipProvider>
   </QueryClientProvider>

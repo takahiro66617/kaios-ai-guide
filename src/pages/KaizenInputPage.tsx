@@ -10,7 +10,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
+import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import UITour, { type TourStep } from "@/components/kaios/UITour";
+import SubmissionCompleteModal from "@/components/gamification/SubmissionCompleteModal";
 
 const KAIZEN_TOUR_STEPS: TourStep[] = [
   { selector: '[data-tour="person-selector"]', title: "① 提案者を選択", description: "改善案の提案者を選択します。提案者は事前に「提案者管理」ページで登録が必要です。", position: "bottom" },
@@ -69,8 +71,11 @@ const KaizenInputPage = () => {
   const [aiDraft, setAiDraft] = useState<any | null>(null);
   const [editedDraft, setEditedDraft] = useState<any | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState("");
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completionData, setCompletionData] = useState<{ impactScore: number; xpGained: number; oldLevel: number; newLevel: number; completedMissions: { title: string; icon: string; xpReward: number }[] }>({ impactScore: 0, xpGained: 0, oldLevel: 1, newLevel: 1, completedMissions: [] });
   const navigate = useNavigate();
   const { addKaizenItem, kaizenItems, people, getPersonById, evalAxes, calculateImpactScore } = useKaios();
+  const { addXp, incrementSubmissions, checkAndCompleteMissions, profile } = useGuestProfile();
 
   useEffect(() => {
     if (people.length > 0 && !selectedPersonId) {
@@ -147,10 +152,46 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
     if (!savedItem) return;
 
-    setStep(4);
-    toast.success("ナレッジベースに登録しました", {
-      description: `「${savedItem.title}」（関連部署: ${relatedDepts.length}件）`,
+    // Gamification: add XP, increment submissions, check missions
+    await incrementSubmissions();
+    const baseXp = 30;
+    const bonusXp = savedItem.impactScore >= 80 ? 50 : savedItem.impactScore >= 60 ? 20 : 0;
+    const totalXp = baseXp + bonusXp;
+    const { oldLevel, newLevel } = await addXp(totalXp);
+
+    const newSubmissionCount = (profile?.totalSubmissions || 0) + 1;
+    const completedMissions = await checkAndCompleteMissions({
+      submissionCount: newSubmissionCount,
+      impactScore: savedItem.impactScore,
+      hasMultiDept: relatedDepts.length > 0,
     });
+
+    // Award mission XP
+    let missionXp = 0;
+    for (const m of completedMissions) {
+      missionXp += m.xpReward;
+    }
+    if (missionXp > 0) {
+      const result = await addXp(missionXp);
+      setCompletionData({
+        impactScore: savedItem.impactScore,
+        xpGained: totalXp + missionXp,
+        oldLevel,
+        newLevel: result.newLevel,
+        completedMissions: completedMissions.map(m => ({ title: m.title, icon: m.icon, xpReward: m.xpReward })),
+      });
+    } else {
+      setCompletionData({
+        impactScore: savedItem.impactScore,
+        xpGained: totalXp,
+        oldLevel,
+        newLevel,
+        completedMissions: [],
+      });
+    }
+
+    setStep(4);
+    setShowCompleteModal(true);
   };
 
   const handleReset = () => {
@@ -465,22 +506,32 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
               <CheckCircle2 className="w-16 h-16 text-kaios-success mx-auto" />
               <h2 className="text-xl font-bold text-foreground">ナレッジ登録完了</h2>
               <p className="text-sm text-muted-foreground">
-                改善案がナレッジベースに蓄積されました。インパクトの見える化ページに即座に反映されます。
+                改善案がナレッジベースに蓄積されました。+{completionData.xpGained}XP獲得！
               </p>
               <div className="flex items-center justify-center gap-3 pt-4">
                 <Button onClick={handleReset} className="gap-1.5">
-                  <RefreshCw className="w-4 h-4" />新しい改善案を入力
+                  <RefreshCw className="w-4 h-4" />もう1件提出する
                 </Button>
-                <Button variant="outline" onClick={() => navigate("/impact")} className="gap-1.5">
-                  <BarChart2 className="w-4 h-4" />インパクトを確認
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/similar-cases")} className="gap-1.5">
-                  <FileText className="w-4 h-4" />類似事例を探す
+                <Button variant="outline" onClick={() => navigate("/")} className="gap-1.5">
+                  <BarChart2 className="w-4 h-4" />ダッシュボードへ
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Submission Complete Modal */}
+        <SubmissionCompleteModal
+          open={showCompleteModal}
+          onOpenChange={setShowCompleteModal}
+          impactScore={completionData.impactScore}
+          xpGained={completionData.xpGained}
+          oldLevel={completionData.oldLevel}
+          newLevel={completionData.newLevel}
+          completedMissions={completionData.completedMissions}
+          onGoToDashboard={() => { setShowCompleteModal(false); navigate("/"); }}
+          onSubmitAnother={() => { setShowCompleteModal(false); handleReset(); }}
+        />
 
         {/* Recent items - visible on step 1 and 4 */}
         {(step === 1 || step === 4) && recentItems.length > 0 && (

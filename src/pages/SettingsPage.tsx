@@ -45,7 +45,7 @@ const SettingsPage = () => {
                 <Label className="text-sm font-medium">評価方針設定</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">AIの評価基準（Speed / Cross-functional）をチューニング</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/eval-settings")}>
                 設定を開く
               </Button>
             </div>
