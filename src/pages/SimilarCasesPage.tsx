@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, User, Loader2, MessageSquare } from "lucide-react";
+import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, User, Loader2, MessageSquare, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
+import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
 import UITour, { type TourStep } from "@/components/kaios/UITour";
 
@@ -29,6 +30,7 @@ interface RankedItem extends KaizenItem {
 
 const SimilarCasesPage = () => {
   const { kaizenItems, getPersonById } = useKaios();
+  const { toggleLike, getLikeInfo } = useGuestProfile();
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<RankedItem[]>([]);
