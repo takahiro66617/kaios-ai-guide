@@ -1,12 +1,16 @@
-import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users, Bug } from "lucide-react";
+import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useGuestProfile, LEVEL_TITLES } from "@/contexts/GuestProfileContext";
+import { Progress } from "@/components/ui/progress";
 
 const menuItems = [
-  { title: "評価方針設定", subtitle: "AIの評価基準をチューニング", icon: Sparkles, path: "/" },
-  { title: "提案者管理", subtitle: "メンバーの追加・編集", icon: Users, path: "/people" },
-  { title: "改善入力と整理", subtitle: "現場の気づきを構造化", icon: Lightbulb, path: "/kaizen-input" },
+  { title: "ダッシュボード", subtitle: "進捗・ミッション・実績", icon: Home, path: "/" },
+  { title: "改善を提出する", subtitle: "現場の気づきを構造化", icon: Lightbulb, path: "/kaizen-input" },
+  { title: "ミッション", subtitle: "チャレンジしてXPを獲得", icon: Target, path: "/missions" },
   { title: "類似事例を探す", subtitle: "過去のナレッジを検索", icon: Search, path: "/similar-cases" },
-  { title: "インパクトの見える化", subtitle: "組織への貢献度を可視化", icon: BarChart3, path: "/impact" },
+  { title: "インパクト分析", subtitle: "組織への貢献度を可視化", icon: BarChart3, path: "/impact" },
+  { title: "評価方針設定", subtitle: "AIの評価基準をチューニング", icon: Sparkles, path: "/eval-settings" },
+  { title: "提案者管理", subtitle: "メンバーの追加・編集", icon: Users, path: "/people" },
   { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
 ];
 
@@ -17,6 +21,7 @@ interface KaiosSidebarProps {
 
 const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
   const location = useLocation();
+  const { profile, levelTitle, levelProgress, xpToNextLevel } = useGuestProfile();
 
   return (
     <aside className={`
@@ -57,16 +62,22 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
         })}
       </nav>
 
-      {/* User Profile */}
-      <div className="p-4 border-t border-border flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">山田</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-foreground truncate">山田 太郎</div>
-          <div className="text-xs text-muted-foreground">システム管理者</div>
+      {/* Guest Profile */}
+      <div className="p-4 border-t border-border">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
+            {profile?.level || 1}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-foreground truncate">Lv.{profile?.level || 1} {levelTitle}</div>
+            <div className="text-xs text-muted-foreground">{profile?.xp || 0} XP</div>
+          </div>
+          <Link to="/settings" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <Settings className="w-4 h-4" />
+          </Link>
         </div>
-        <Link to="/settings" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <Settings className="w-4 h-4" />
-        </Link>
+        <Progress value={levelProgress} className="h-1.5" />
+        <p className="text-xs text-muted-foreground mt-1">次のレベルまで {xpToNextLevel}XP</p>
       </div>
     </aside>
   );
