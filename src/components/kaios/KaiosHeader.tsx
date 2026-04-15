@@ -3,11 +3,13 @@ import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const pageTitles: Record<string, string> = {
-  "/": "評価方針設定",
-  "/people": "提案者管理",
-  "/kaizen-input": "改善入力と整理",
+  "/": "ダッシュボード",
+  "/kaizen-input": "改善を提出する",
+  "/missions": "ミッション",
   "/similar-cases": "類似事例を探す",
-  "/impact": "インパクトの見える化",
+  "/impact": "インパクト分析",
+  "/eval-settings": "評価方針設定",
+  "/people": "提案者管理",
   "/settings": "設定",
   "/debug-reports": "バグレポート管理",
 };
