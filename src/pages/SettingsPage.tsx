@@ -1,14 +1,8 @@
-import { Settings, Palette } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import PageHelpGuide from "@/components/kaios/PageHelpGuide";
 
 const SettingsPage = () => {
-  const navigate = useNavigate();
-
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-4 sm:p-6 max-w-[800px] mx-auto space-y-6">
@@ -19,45 +13,29 @@ const SettingsPage = () => {
               設定
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              KAIOSの各種設定へのショートカットです。
+              個人向けの設定画面です。
             </p>
           </div>
           <PageHelpGuide
             title="設定 — 使い方"
-            overview="KAIOSの主要な設定ページへのショートカットを提供します。"
+            overview="個人アカウントに関する設定を確認できます。評価方針や提案者管理などの組織設定は管理者ページから操作してください。"
             steps={[
-              { icon: "⚙️", title: "評価方針設定", description: "AIがインパクトスコアを算出する際のウェイト（Speed / Cross-functional）を調整します。" },
-              { icon: "👤", title: "提案者管理", description: "改善案の提案者（メンバー）を追加・編集・削除します。" },
+              { icon: "👤", title: "アカウント", description: "ログイン中のユーザー情報はサイドバー下部から確認できます。" },
             ]}
           />
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              クイックアクセス
-            </CardTitle>
+            <CardTitle className="text-base">アカウント情報</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-              <div>
-                <Label className="text-sm font-medium">評価方針設定</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">AIの評価基準（Speed / Cross-functional）をチューニング</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => navigate("/eval-settings")}>
-                設定を開く
-              </Button>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-              <div>
-                <Label className="text-sm font-medium">提案者管理</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">メンバーの追加・編集・削除</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => navigate("/people")}>
-                管理を開く
-              </Button>
-            </div>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              現在のアカウント情報はサイドバー下部に表示されています。ログアウトもサイドバーから行えます。
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              ※ 評価方針設定・提案者管理は管理者専用機能のため、ここには表示されません。
+            </p>
           </CardContent>
         </Card>
       </div>

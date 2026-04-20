@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Settings, Sparkles, Filter, Calendar, Building2, X } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Filter, Calendar, Building2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -211,30 +211,6 @@ const ImpactPage = () => {
             </p>
           </div>
           <UITour steps={IMPACT_TOUR_STEPS} tourKey="impact" />
-        </div>
-
-        {/* Eval Settings Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border bg-primary/5 border-primary/20" data-tour="eval-banner">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-primary shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                現在の評価方針: {evalAxes.filter(a => a.isActive).map(a => (
-                  <span key={a.id} className="text-primary">{a.name} {a.weight}%</span>
-                )).reduce((prev: any, curr: any, i: number) => i === 0 ? [curr] : [...prev, " / ", curr], [] as any[])}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                全{kaizenItems.length}件の改善案のインパクトスコアがこの方針に基づいて算出されています
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate("/eval-settings")}
-            className="flex items-center gap-1.5 text-sm text-primary hover:underline shrink-0"
-          >
-            <Settings className="w-4 h-4" />
-            評価方針を変更
-          </button>
         </div>
 
         {/* Filter Bar */}
