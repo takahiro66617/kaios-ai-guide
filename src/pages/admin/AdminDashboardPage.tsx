@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useKaios, EXECUTION_STAGES, ExecutionStage, KaizenItem, StageHistoryEntry } from "@/contexts/KaiosContext";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save } from "lucide-react";
+import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
