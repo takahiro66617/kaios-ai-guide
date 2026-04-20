@@ -118,7 +118,7 @@ const ImpactPage = () => {
 
   // Compute stats from filtered data
   const totalItems = filteredItems.length;
-  const completedItems = filteredItems.filter(k => k.status === "完了").length;
+  const completedItems = filteredItems.filter(k => k.executionStage === "実行済み").length;
   const avgImpact = totalItems > 0 ? Math.round(filteredItems.reduce((s, k) => s + k.impactScore, 0) / totalItems) : 0;
   const activeDepts = new Set(filteredItems.map(k => k.department));
   const thisMonthItems = filteredItems.filter(k => {
@@ -160,7 +160,7 @@ const ImpactPage = () => {
       existing.count++;
       existing.totalScore += k.impactScore;
       existing.adoptions += k.adoptedBy.length;
-      if (k.status === "完了") existing.completed++;
+      if (k.executionStage === "実行済み") existing.completed++;
       personMap.set(k.authorId, existing);
     });
 

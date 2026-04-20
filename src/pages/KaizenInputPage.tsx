@@ -183,7 +183,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
   };
 
   const recentItems = kaizenItems
-    .filter(k => k.status !== "新規" && k.authorId === mePerson?.id)
+    .filter(k => k.authorId === mePerson?.id)
     .slice(0, 3);
 
   return (
