@@ -292,6 +292,7 @@ export type Database = {
           adopted_by: string[]
           author_id: string
           author_name_snapshot: string | null
+          author_note: string | null
           category: string
           cause: string
           created_at: string
@@ -318,6 +319,7 @@ export type Database = {
           adopted_by?: string[]
           author_id: string
           author_name_snapshot?: string | null
+          author_note?: string | null
           category: string
           cause: string
           created_at?: string
@@ -344,6 +346,7 @@ export type Database = {
           adopted_by?: string[]
           author_id?: string
           author_name_snapshot?: string | null
+          author_note?: string | null
           category?: string
           cause?: string
           created_at?: string

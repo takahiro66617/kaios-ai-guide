@@ -34,7 +34,7 @@ const KaizenDetailView = ({ item, onBack }: { item: KaizenItem; onBack: () => vo
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">{item.title}</h2>
-        <Badge variant={item.status === "完了" ? "default" : "secondary"}>{item.status}</Badge>
+        <Badge variant={item.executionStage === "実行済み" ? "default" : "secondary"}>{item.status}</Badge>
       </div>
 
       {/* Impact Score */}
@@ -123,8 +123,8 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
   if (!person) return null;
 
   const personKaizen = getKaizenByPerson(person.id);
-  const completedKaizen = personKaizen.filter(k => k.status === "完了");
-  const inProgressKaizen = personKaizen.filter(k => k.status === "実行中");
+  const completedKaizen = personKaizen.filter(k => k.executionStage === "実行済み");
+  const inProgressKaizen = personKaizen.filter(k => k.executionStage === "実行予定");
 
   // Real: count total adoptions across all items
   const totalAdoptions = personKaizen.reduce((sum, k) => sum + k.adoptedBy.length, 0);
@@ -266,7 +266,7 @@ const PersonDetailModal = ({ person, open, onOpenChange }: PersonDetailModalProp
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                            <Badge variant={k.status === "完了" ? "default" : "outline"} className="text-xs">{k.status}</Badge>
+                            <Badge variant={k.executionStage === "実行済み" ? "default" : "outline"} className="text-xs">{k.status}</Badge>
                             <span>{k.department}</span>
                             <span>{k.createdAt}</span>
                             {k.adoptedBy.length > 0 && <span>採用: {k.adoptedBy.length}部署</span>}

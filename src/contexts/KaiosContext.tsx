@@ -24,7 +24,7 @@ export interface KaizenItem {
   category: string;
   reproducibility: "高" | "中" | "低";
   tags: string[];
-  status: "新規" | "構造化済み" | "ナレッジ登録済み" | "実行中" | "完了";
+  status: KaizenStatus;
   authorId: string;
   authorNameSnapshot: string;
   createdAt: string;
@@ -37,7 +37,11 @@ export interface KaizenItem {
   stageChangedAt: string | null;
   stageChangedBy: string | null;
   adminMemo: string;
+  authorNote: string;
 }
+
+export type KaizenStatus = "下書き" | "申請中" | "承認済み" | "差戻し";
+export const KAIZEN_STATUSES: KaizenStatus[] = ["下書き", "申請中", "承認済み", "差戻し"];
 
 export type ExecutionStage = "提案中" | "実行予定" | "実行済み";
 export const EXECUTION_STAGES: ExecutionStage[] = ["提案中", "実行予定", "実行済み"];
@@ -88,7 +92,7 @@ const mapRowToItem = (row: any): KaizenItem => ({
   category: row.category,
   reproducibility: row.reproducibility as KaizenItem["reproducibility"],
   tags: row.tags || [],
-  status: row.status as KaizenItem["status"],
+  status: (row.status as KaizenStatus) || "下書き",
   authorId: row.author_id,
   authorNameSnapshot: row.author_name_snapshot || "",
   createdAt: row.created_at ? row.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -101,6 +105,7 @@ const mapRowToItem = (row: any): KaizenItem => ({
   stageChangedAt: row.stage_changed_at || null,
   stageChangedBy: row.stage_changed_by || null,
   adminMemo: row.admin_memo || "",
+  authorNote: row.author_note || "",
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
@@ -127,8 +132,14 @@ interface KaiosContextType {
   updateEvalAxis: (id: string, updates: Partial<EvalAxis>) => Promise<void>;
   deleteEvalAxis: (id: string) => Promise<void>;
   updateAxisWeight: (id: string, weight: number) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
-  updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus }) => Promise<KaizenItem | null>;
+  updateKaizenStatus: (id: string, status: KaizenStatus) => Promise<void>;
+  submitForApproval: (id: string) => Promise<void>;
+  approveKaizen: (id: string) => Promise<void>;
+  rejectKaizen: (id: string, reason?: string) => Promise<void>;
+  updateAuthorNote: (id: string, note: string) => Promise<void>;
+  editKaizenItem: (id: string, updates: Partial<Omit<KaizenItem, "id" | "createdAt" | "authorId">>) => Promise<void>;
+  deleteKaizenItem: (id: string) => Promise<void>;
   updateExecutionStage: (id: string, stage: ExecutionStage, changedBy?: string, reason?: string) => Promise<void>;
   updateAdminMemo: (id: string, memo: string) => Promise<void>;
   getStageHistory: (kaizenItemId: string) => Promise<StageHistoryEntry[]>;
@@ -271,12 +282,15 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const addKaizenItem = useCallback(async (
-    item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }
+    item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus }
   ): Promise<KaizenItem | null> => {
     const adoptedBy = item.adoptedBy || [];
+    const initialStatus: KaizenStatus = item.status || "下書き";
     const registeredItem: KaizenItem = {
       ...item, id: `temp-${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10),
-      adoptedBy, impactScore: 0, status: "ナレッジ登録済み",
+      adoptedBy, impactScore: 0, status: initialStatus,
+      executionStage: "提案中", stageChangedAt: null, stageChangedBy: null,
+      adminMemo: "", authorNote: "",
     };
     registeredItem.impactScore = calculateImpactScore(registeredItem);
     try {
@@ -284,13 +298,13 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         title: item.title, problem: item.problem, cause: item.cause,
         solution: item.solution, effect: item.effect, department: item.department,
         category: item.category, reproducibility: item.reproducibility,
-        tags: item.tags, status: "ナレッジ登録済み", author_id: item.authorId,
+        tags: item.tags, status: initialStatus, author_id: item.authorId,
         author_name_snapshot: item.authorNameSnapshot,
         adopted_by: adoptedBy, impact_score: registeredItem.impactScore,
         occurrence_place: item.occurrencePlace || "", frequency: item.frequency || "",
         numerical_evidence: item.numericalEvidence || "",
       } as any).select().single();
-      if (error) { toast.error("データベースへの保存に失敗しました"); return null; }
+      if (error) { toast.error(error.message || "保存に失敗しました"); return null; }
       if (data) {
         const dbItem = mapRowToItem(data);
         setKaizenItems(prev => [dbItem, ...prev.filter(i => i.id !== dbItem.id)]);
@@ -300,14 +314,70 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { toast.error("データベースへの保存に失敗しました"); return null; }
   }, [calculateImpactScore]);
 
-  const updateKaizenStatus = useCallback((id: string, status: KaizenItem["status"]) => {
-    setKaizenItems(prev => prev.map(item => item.id === id ? { ...item, status } : item));
-    (async () => {
-      try {
-        const { error } = await supabase.from("kaizen_items").update({ status }).eq("id", id);
-        if (error) console.error("Failed to update status:", error);
-      } catch (e) { console.error("Error updating status:", e); }
-    })();
+  const updateKaizenStatus = useCallback(async (id: string, status: KaizenStatus) => {
+    try {
+      const { error } = await supabase.from("kaizen_items").update({ status }).eq("id", id);
+      if (error) { toast.error(error.message || "ステータスの変更に失敗しました"); return; }
+      setKaizenItems(prev => prev.map(item => item.id === id ? { ...item, status } : item));
+    } catch (e) { console.error("Error updating status:", e); }
+  }, []);
+
+  const submitForApproval = useCallback(async (id: string) => {
+    await updateKaizenStatus(id, "申請中");
+  }, [updateKaizenStatus]);
+
+  const approveKaizen = useCallback(async (id: string) => {
+    await updateKaizenStatus(id, "承認済み");
+  }, [updateKaizenStatus]);
+
+  const rejectKaizen = useCallback(async (id: string, reason?: string) => {
+    try {
+      const updates: any = { status: "差戻し" };
+      if (reason) updates.admin_memo = reason;
+      const { error } = await supabase.from("kaizen_items").update(updates).eq("id", id);
+      if (error) { toast.error(error.message || "差戻しに失敗しました"); return; }
+      setKaizenItems(prev => prev.map(i => i.id === id ? { ...i, status: "差戻し" as KaizenStatus, ...(reason ? { adminMemo: reason } : {}) } : i));
+    } catch (e) { console.error("Error rejecting:", e); }
+  }, []);
+
+  const updateAuthorNote = useCallback(async (id: string, note: string) => {
+    try {
+      const { error } = await supabase.from("kaizen_items").update({ author_note: note } as any).eq("id", id);
+      if (error) { toast.error("提案者メモの保存に失敗しました"); return; }
+      setKaizenItems(prev => prev.map(i => i.id === id ? { ...i, authorNote: note } : i));
+    } catch (e) { console.error("Error updating author_note:", e); }
+  }, []);
+
+  const editKaizenItem = useCallback(async (id: string, updates: Partial<Omit<KaizenItem, "id" | "createdAt" | "authorId">>) => {
+    try {
+      const dbUpdates: any = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.problem !== undefined) dbUpdates.problem = updates.problem;
+      if (updates.cause !== undefined) dbUpdates.cause = updates.cause;
+      if (updates.solution !== undefined) dbUpdates.solution = updates.solution;
+      if (updates.effect !== undefined) dbUpdates.effect = updates.effect;
+      if (updates.department !== undefined) dbUpdates.department = updates.department;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.reproducibility !== undefined) dbUpdates.reproducibility = updates.reproducibility;
+      if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+      if (updates.occurrencePlace !== undefined) dbUpdates.occurrence_place = updates.occurrencePlace;
+      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+      if (updates.numericalEvidence !== undefined) dbUpdates.numerical_evidence = updates.numericalEvidence;
+      if (updates.adoptedBy !== undefined) dbUpdates.adopted_by = updates.adoptedBy;
+      const { error } = await supabase.from("kaizen_items").update(dbUpdates).eq("id", id);
+      if (error) { toast.error("更新に失敗しました"); return; }
+      setKaizenItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+      toast.success("更新しました");
+    } catch (e) { console.error("Error editing kaizen:", e); }
+  }, []);
+
+  const deleteKaizenItem = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase.from("kaizen_items").delete().eq("id", id);
+      if (error) { toast.error("削除に失敗しました"); return; }
+      setKaizenItems(prev => prev.filter(i => i.id !== id));
+      toast.success("削除しました");
+    } catch (e) { console.error("Error deleting kaizen:", e); }
   }, []);
 
   const updateExecutionStage = useCallback(async (id: string, stage: ExecutionStage, changedBy = "admin", reason?: string) => {
@@ -396,7 +466,9 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     <KaiosContext.Provider value={{
       people, kaizenItems, isLoading,
       evalAxes, refreshEvalAxes, addEvalAxis, updateEvalAxis, deleteEvalAxis, updateAxisWeight,
-      addKaizenItem, updateKaizenStatus, updateExecutionStage, updateAdminMemo, getStageHistory,
+      addKaizenItem, updateKaizenStatus, submitForApproval, approveKaizen, rejectKaizen,
+      updateAuthorNote, editKaizenItem, deleteKaizenItem,
+      updateExecutionStage, updateAdminMemo, getStageHistory,
       getPersonById, getKaizenByPerson, getKaizenByDepartment,
       calculateImpactScore, refreshItems, refreshPeople,
       addPerson, updatePerson, deletePerson,
