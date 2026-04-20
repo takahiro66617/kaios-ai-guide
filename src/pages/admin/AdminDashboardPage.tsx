@@ -100,6 +100,7 @@ const AdminDashboardPage = () => {
       .sort((a, b) => b.totalImpact - a.totalImpact);
   }, [kaizenItems]);
 
+  const allFilteredSelected = filteredItems.length > 0 && filteredItems.every(i => selected.has(i.id));
 
   const toggleAll = () => {
     if (allFilteredSelected) {
