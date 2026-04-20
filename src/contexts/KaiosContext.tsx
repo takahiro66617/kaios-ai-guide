@@ -92,7 +92,7 @@ const mapRowToItem = (row: any): KaizenItem => ({
   category: row.category,
   reproducibility: row.reproducibility as KaizenItem["reproducibility"],
   tags: row.tags || [],
-  status: row.status as KaizenItem["status"],
+  status: (row.status as KaizenStatus) || "下書き",
   authorId: row.author_id,
   authorNameSnapshot: row.author_name_snapshot || "",
   createdAt: row.created_at ? row.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -105,6 +105,7 @@ const mapRowToItem = (row: any): KaizenItem => ({
   stageChangedAt: row.stage_changed_at || null,
   stageChangedBy: row.stage_changed_by || null,
   adminMemo: row.admin_memo || "",
+  authorNote: row.author_note || "",
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
