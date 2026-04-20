@@ -19,6 +19,7 @@ import DebugReportsPage from "@/pages/DebugReportsPage";
 import DashboardPage from "@/pages/DashboardPage";
 import MissionsPage from "@/pages/MissionsPage";
 import LoginPage from "@/pages/LoginPage";
+import AdminLoginPage from "@/pages/admin/AdminLoginPage";
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -36,6 +37,7 @@ const App = () => (
                 <Sonner />
                 <Routes>
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/admin/login" element={<AdminLoginPage />} />
                   <Route
                     element={
                       <ProtectedRoute>
