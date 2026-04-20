@@ -10,6 +10,7 @@ export interface Person {
   yearsAtCompany: number;
   avatarInitial: string;
   isActive: boolean;
+  userId: string | null;
 }
 
 export interface KaizenItem {
@@ -72,6 +73,7 @@ const mapRowToPerson = (row: any): Person => ({
   yearsAtCompany: row.years_at_company || 1,
   avatarInitial: row.avatar_initial || row.name?.charAt(0) || "?",
   isActive: row.is_active ?? true,
+  userId: row.user_id ?? null,
 });
 
 const mapRowToItem = (row: any): KaizenItem => ({

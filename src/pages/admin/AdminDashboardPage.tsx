@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useKaios, EXECUTION_STAGES, ExecutionStage, KaizenItem, StageHistoryEntry } from "@/contexts/KaiosContext";
-import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ const daysSince = (iso: string | null) => {
 
 const AdminDashboardPage = () => {
   const { kaizenItems, evalAxes, updateExecutionStage, updateAdminMemo, getStageHistory, getPersonById, refreshItems } = useKaios();
-  const { logout } = useAdminAuth();
+  const { signOut } = useAuth();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<ExecutionStage | "all">("all");
   const [memoOnly, setMemoOnly] = useState(false);
@@ -205,7 +205,7 @@ const AdminDashboardPage = () => {
             <Button variant="outline" size="sm" asChild>
               <Link to="/eval-settings"><Sparkles className="w-4 h-4 mr-2" />評価方針設定</Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { logout(); toast.success("ログアウトしました"); }}>
+            <Button variant="outline" size="sm" onClick={async () => { await signOut(); toast.success("ログアウトしました"); }}>
               <LogOut className="w-4 h-4 mr-2" />ログアウト
             </Button>
           </div>
