@@ -467,7 +467,72 @@ const EvaluationSettings = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Axis Dialog */}
+      <Dialog open={!!editingAxis} onOpenChange={(o) => { if (!o) setEditingAxis(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>評価軸を編集</DialogTitle>
+            <DialogDescription>
+              キーは内部識別子のため変更できません。表示名・説明・ラベル・初期値を編集します。ウェイトは一覧のスライダーで変更してください。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label>軸名 *</Label>
+              <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label>説明</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                rows={2}
+                placeholder="この軸の評価基準の説明"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>ツールチップ（iマークに表示）</Label>
+              <Textarea
+                value={editForm.tooltip}
+                onChange={e => setEditForm(p => ({ ...p, tooltip: e.target.value }))}
+                rows={2}
+                placeholder="未入力の場合は説明を表示します"
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>左ラベル（低い時）</Label>
+                <Input value={editForm.leftLabel} onChange={e => setEditForm(p => ({ ...p, leftLabel: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label>右ラベル（高い時）</Label>
+                <Input value={editForm.rightLabel} onChange={e => setEditForm(p => ({ ...p, rightLabel: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+            <div>
+              <Label>初期値（0〜100）</Label>
+              <Input
+                type="number" min={0} max={100}
+                value={editForm.defaultValue}
+                onChange={e => setEditForm(p => ({ ...p, defaultValue: Math.min(100, Math.max(0, Number(e.target.value))) }))}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">キャンセル</Button></DialogClose>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
+    </TooltipProvider>
   );
 };
 
