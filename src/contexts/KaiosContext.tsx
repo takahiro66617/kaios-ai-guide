@@ -258,10 +258,11 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const deleteEvalAxis = useCallback(async (id: string) => {
+    // 論理削除: is_active=false にすることで履歴のスコアは保持され、今後の再計算からは除外される
     try {
-      const { error } = await supabase.from("eval_axes").delete().eq("id", id);
+      const { error } = await supabase.from("eval_axes").update({ is_active: false }).eq("id", id);
       if (error) { toast.error("評価軸の削除に失敗しました"); return; }
-      setEvalAxes(prev => prev.filter(a => a.id !== id));
+      setEvalAxes(prev => prev.map(a => a.id === id ? { ...a, isActive: false } : a));
     } catch (e) { console.error("Error deleting axis:", e); }
   }, []);
 

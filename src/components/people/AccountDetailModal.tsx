@@ -20,11 +20,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type Person } from "@/contexts/KaiosContext";
 import { LEVEL_TITLES, LEVEL_THRESHOLDS } from "@/contexts/GuestProfileContext";
-
-const DEPARTMENTS = [
-  "カスタマーサポート部", "情報システム部", "営業部", "経営企画部",
-  "製造部", "経理部", "物流部", "総務部", "人事部", "マーケティング部",
-];
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDepartments } from "@/hooks/useDepartments";
 
 function validateUsername(u: string): string | null {
   if (u.length < 3 || u.length > 64) return "ユーザー名は3〜64文字で入力してください";
@@ -61,10 +58,12 @@ const AccountDetailModal = ({
 }: Props) => {
   const { getKaizenByPerson, deletePerson, refreshPeople } = useKaios();
 
+  const { departments } = useDepartments(false);
+
   // Basic info
   const [eName, setEName] = useState("");
   const [eUsername, setEUsername] = useState("");
-  const [eDept, setEDept] = useState(DEPARTMENTS[0]);
+  const [eDept, setEDept] = useState("");
   const [eRole, setERole] = useState("");
   const [eYears, setEYears] = useState(1);
   const [savingBasic, setSavingBasic] = useState(false);
@@ -297,9 +296,16 @@ const AccountDetailModal = ({
               )}
               <div>
                 <Label>部門</Label>
-                <select value={eDept} onChange={e => setEDept(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <Select value={eDept} onValueChange={setEDept}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="部門を選択" /></SelectTrigger>
+                  <SelectContent>
+                    {/* 既存の部門名がマスタに無い場合も表示できるよう先頭に追加 */}
+                    {eDept && !departments.some(d => d.name === eDept) && (
+                      <SelectItem value={eDept}>{eDept}（マスタ未登録）</SelectItem>
+                    )}
+                    {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

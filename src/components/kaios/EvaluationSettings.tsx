@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { toast } from "sonner";
 import UITour, { type TourStep } from "@/components/kaios/UITour";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Pencil } from "lucide-react";
 
 const TOUR_STEPS: TourStep[] = [
   { selector: '[data-tour="weight-settings"]', title: "① 評価ウェイト設定", description: "各評価軸のウェイト（重要度）をスライダーで調整します。軸の追加・削除も可能です。", position: "right" },
@@ -41,6 +43,9 @@ const EvaluationSettings = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newAxis, setNewAxis] = useState({ name: "", key: "", description: "", tooltip: "", leftLabel: "低 (0%)", rightLabel: "高 (100%)" });
   const [history, setHistory] = useState<any[]>([]);
+  const [editingAxis, setEditingAxis] = useState<EvalAxis | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", tooltip: "", leftLabel: "", rightLabel: "", defaultValue: 50 });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const activeAxes = evalAxes.filter(a => a.isActive);
 
@@ -135,12 +140,41 @@ const EvaluationSettings = () => {
 
   const handleDeleteAxis = async (axis: EvalAxis) => {
     await deleteEvalAxis(axis.id);
-    toast.success(`評価軸「${axis.name}」を削除しました`);
+    toast.success(`評価軸「${axis.name}」を削除しました（履歴のスコアは保持されます）`);
   };
 
   const handleToggleActive = async (axis: EvalAxis) => {
     await updateEvalAxis(axis.id, { isActive: !axis.isActive });
     toast.info(`評価軸「${axis.name}」を${axis.isActive ? "無効" : "有効"}にしました`);
+  };
+
+  const openEditAxis = (axis: EvalAxis) => {
+    setEditingAxis(axis);
+    setEditForm({
+      name: axis.name,
+      description: axis.description,
+      tooltip: axis.tooltip,
+      leftLabel: axis.leftLabel,
+      rightLabel: axis.rightLabel,
+      defaultValue: axis.defaultValue,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAxis) return;
+    if (!editForm.name.trim()) { toast.error("軸名は必須です"); return; }
+    setSavingEdit(true);
+    await updateEvalAxis(editingAxis.id, {
+      name: editForm.name.trim(),
+      description: editForm.description,
+      tooltip: editForm.tooltip,
+      leftLabel: editForm.leftLabel || "低 (0%)",
+      rightLabel: editForm.rightLabel || "高 (100%)",
+      defaultValue: editForm.defaultValue,
+    });
+    setSavingEdit(false);
+    toast.success(`評価軸「${editForm.name}」を更新しました`);
+    setEditingAxis(null);
   };
 
   const handleReset = () => {
@@ -174,6 +208,7 @@ const EvaluationSettings = () => {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         {/* Header */}
@@ -302,28 +337,48 @@ const EvaluationSettings = () => {
                       <div className="flex items-center gap-2 min-w-0">
                         <GripVertical className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
                         <h3 className="text-sm font-semibold text-foreground truncate">{axis.name}</h3>
-                        <Tooltip>
-                          <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground shrink-0" /></TooltipTrigger>
-                          <TooltipContent className="max-w-[250px]">{axis.tooltip || axis.description}</TooltipContent>
-                        </Tooltip>
+                        {(axis.tooltip || axis.description) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="説明を表示">
+                                <Info className="w-4 h-4 shrink-0" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[260px]">
+                              <p className="text-xs whitespace-pre-wrap">{axis.tooltip || axis.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         {!axis.isActive && <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">無効</span>}
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch checked={axis.isActive} onCheckedChange={() => handleToggleActive(axis)} />
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditAxis(axis)}
+                          aria-label="編集"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label="削除">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>「{axis.name}」を削除しますか？</AlertDialogTitle>
-                              <AlertDialogDescription>この評価軸を完全に削除します。この操作は取り消せません。</AlertDialogDescription>
+                              <AlertDialogDescription>
+                                この軸は今後の評価・再計算で使用されなくなります。<br />
+                                過去の改善案に既についているスコアは保持されますが、次回の再計算ではこの軸が無視されてスコアが変動します。<br />
+                                必要であれば「無効化（Switch）」で一時的に外すこともできます。
+                              </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteAxis(axis)} className="bg-destructive text-destructive-foreground">削除</AlertDialogAction>
+                              <AlertDialogAction onClick={() => handleDeleteAxis(axis)} className="bg-destructive text-destructive-foreground">削除する</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -412,7 +467,72 @@ const EvaluationSettings = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Axis Dialog */}
+      <Dialog open={!!editingAxis} onOpenChange={(o) => { if (!o) setEditingAxis(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>評価軸を編集</DialogTitle>
+            <DialogDescription>
+              キーは内部識別子のため変更できません。表示名・説明・ラベル・初期値を編集します。ウェイトは一覧のスライダーで変更してください。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label>軸名 *</Label>
+              <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label>説明</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                rows={2}
+                placeholder="この軸の評価基準の説明"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>ツールチップ（iマークに表示）</Label>
+              <Textarea
+                value={editForm.tooltip}
+                onChange={e => setEditForm(p => ({ ...p, tooltip: e.target.value }))}
+                rows={2}
+                placeholder="未入力の場合は説明を表示します"
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>左ラベル（低い時）</Label>
+                <Input value={editForm.leftLabel} onChange={e => setEditForm(p => ({ ...p, leftLabel: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label>右ラベル（高い時）</Label>
+                <Input value={editForm.rightLabel} onChange={e => setEditForm(p => ({ ...p, rightLabel: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+            <div>
+              <Label>初期値（0〜100）</Label>
+              <Input
+                type="number" min={0} max={100}
+                value={editForm.defaultValue}
+                onChange={e => setEditForm(p => ({ ...p, defaultValue: Math.min(100, Math.max(0, Number(e.target.value))) }))}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">キャンセル</Button></DialogClose>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
+    </TooltipProvider>
   );
 };
 
