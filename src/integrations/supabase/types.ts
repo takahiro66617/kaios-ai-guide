@@ -182,6 +182,44 @@ export type Database = {
         }
         Relationships: []
       }
+      execution_stage_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          from_stage: string | null
+          id: string
+          kaizen_item_id: string
+          reason: string | null
+          to_stage: string
+        }
+        Insert: {
+          changed_by?: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          kaizen_item_id: string
+          reason?: string | null
+          to_stage: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          kaizen_item_id?: string
+          reason?: string | null
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_stage_history_kaizen_item_id_fkey"
+            columns: ["kaizen_item_id"]
+            isOneToOne: false
+            referencedRelation: "kaizen_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_profiles: {
         Row: {
           consecutive_days: number
@@ -223,6 +261,7 @@ export type Database = {
       }
       kaizen_items: {
         Row: {
+          admin_memo: string | null
           adopted_by: string[]
           author_id: string
           category: string
@@ -230,6 +269,7 @@ export type Database = {
           created_at: string
           department: string
           effect: string
+          execution_stage: string
           frequency: string
           id: string
           impact_score: number
@@ -238,12 +278,15 @@ export type Database = {
           problem: string
           reproducibility: string
           solution: string
+          stage_changed_at: string | null
+          stage_changed_by: string | null
           status: string
           tags: string[]
           title: string
           updated_at: string
         }
         Insert: {
+          admin_memo?: string | null
           adopted_by?: string[]
           author_id: string
           category: string
@@ -251,6 +294,7 @@ export type Database = {
           created_at?: string
           department: string
           effect: string
+          execution_stage?: string
           frequency?: string
           id?: string
           impact_score?: number
@@ -259,12 +303,15 @@ export type Database = {
           problem: string
           reproducibility?: string
           solution: string
+          stage_changed_at?: string | null
+          stage_changed_by?: string | null
           status?: string
           tags?: string[]
           title: string
           updated_at?: string
         }
         Update: {
+          admin_memo?: string | null
           adopted_by?: string[]
           author_id?: string
           category?: string
@@ -272,6 +319,7 @@ export type Database = {
           created_at?: string
           department?: string
           effect?: string
+          execution_stage?: string
           frequency?: string
           id?: string
           impact_score?: number
@@ -280,6 +328,8 @@ export type Database = {
           problem?: string
           reproducibility?: string
           solution?: string
+          stage_changed_at?: string | null
+          stage_changed_by?: string | null
           status?: string
           tags?: string[]
           title?: string
