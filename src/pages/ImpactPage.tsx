@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Settings, Sparkles, Filter, Calendar, Building2, X } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Zap, Award, User, ArrowRight, Filter, Calendar, Building2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
