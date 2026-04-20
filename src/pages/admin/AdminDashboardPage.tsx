@@ -11,11 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Sparkles, Loader2, Wand2, BarChart3 } from "lucide-react";
+import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Sparkles, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, Legend } from "recharts";
-
-const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--accent-foreground))", "#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
   "提案中": "bg-blue-500/10 text-blue-700 border-blue-200",
@@ -71,33 +68,6 @@ const AdminDashboardPage = () => {
       }
     });
     return { ...counts, stagnant, total: kaizenItems.length };
-  }, [kaizenItems]);
-
-  const departmentAggregation = useMemo(() => {
-    const map = new Map<string, { department: string; count: number; totalImpact: number; completed: number }>();
-    kaizenItems.forEach(item => {
-      const cur = map.get(item.department) || { department: item.department, count: 0, totalImpact: 0, completed: 0 };
-      cur.count += 1;
-      cur.totalImpact += item.impactScore;
-      if (item.executionStage === "実行済み") cur.completed += 1;
-      map.set(item.department, cur);
-    });
-    return Array.from(map.values())
-      .map(d => ({ ...d, avgImpact: d.count > 0 ? Math.round(d.totalImpact / d.count) : 0 }))
-      .sort((a, b) => b.totalImpact - a.totalImpact);
-  }, [kaizenItems]);
-
-  const categoryAggregation = useMemo(() => {
-    const map = new Map<string, { category: string; count: number; totalImpact: number }>();
-    kaizenItems.forEach(item => {
-      const cur = map.get(item.category) || { category: item.category, count: 0, totalImpact: 0 };
-      cur.count += 1;
-      cur.totalImpact += item.impactScore;
-      map.set(item.category, cur);
-    });
-    return Array.from(map.values())
-      .map(c => ({ ...c, avgImpact: c.count > 0 ? Math.round(c.totalImpact / c.count) : 0 }))
-      .sort((a, b) => b.totalImpact - a.totalImpact);
   }, [kaizenItems]);
 
   const allFilteredSelected = filteredItems.length > 0 && filteredItems.every(i => selected.has(i.id));
@@ -195,7 +165,7 @@ const AdminDashboardPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">管理者ダッシュボード</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">経営層・管理者向けの実行管理画面</p>
+            <p className="text-xs text-muted-foreground mt-0.5">改善案の実行段階管理・メモ・AI再計算（集計の可視化はインパクト分析へ）</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleRecalculate} disabled={recalculating}>
