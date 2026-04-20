@@ -143,6 +143,9 @@ const AdminDashboardPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDeptModalOpen(true)}>
+              <Building2 className="w-4 h-4 mr-2" />部門マスタ管理
+            </Button>
             <Button variant="outline" size="sm" onClick={async () => { await signOut(); toast.success("ログアウトしました"); }}>
               <LogOut className="w-4 h-4 mr-2" />ログアウト
             </Button>
