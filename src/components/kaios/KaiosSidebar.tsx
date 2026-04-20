@@ -9,7 +9,7 @@ const menuItems = [
   { title: "ミッション", subtitle: "チャレンジしてXPを獲得", icon: Target, path: "/missions" },
   { title: "類似事例を探す", subtitle: "過去のナレッジを検索", icon: Search, path: "/similar-cases" },
   { title: "インパクト分析", subtitle: "組織への貢献度を可視化", icon: BarChart3, path: "/impact" },
-  { title: "評価方針設定", subtitle: "AIの評価基準をチューニング", icon: Sparkles, path: "/eval-settings" },
+  
   { title: "提案者管理", subtitle: "メンバーの追加・編集", icon: Users, path: "/people" },
   { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
   { title: "管理者モード", subtitle: "経営層・管理者向け画面", icon: Lock, path: "/admin" },
