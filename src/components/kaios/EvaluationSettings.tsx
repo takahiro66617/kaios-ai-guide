@@ -336,28 +336,48 @@ const EvaluationSettings = () => {
                       <div className="flex items-center gap-2 min-w-0">
                         <GripVertical className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
                         <h3 className="text-sm font-semibold text-foreground truncate">{axis.name}</h3>
-                        <Tooltip>
-                          <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground shrink-0" /></TooltipTrigger>
-                          <TooltipContent className="max-w-[250px]">{axis.tooltip || axis.description}</TooltipContent>
-                        </Tooltip>
+                        {(axis.tooltip || axis.description) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="説明を表示">
+                                <Info className="w-4 h-4 shrink-0" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[260px]">
+                              <p className="text-xs whitespace-pre-wrap">{axis.tooltip || axis.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         {!axis.isActive && <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">無効</span>}
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch checked={axis.isActive} onCheckedChange={() => handleToggleActive(axis)} />
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditAxis(axis)}
+                          aria-label="編集"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label="削除">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>「{axis.name}」を削除しますか？</AlertDialogTitle>
-                              <AlertDialogDescription>この評価軸を完全に削除します。この操作は取り消せません。</AlertDialogDescription>
+                              <AlertDialogDescription>
+                                この軸は今後の評価・再計算で使用されなくなります。<br />
+                                過去の改善案に既についているスコアは保持されますが、次回の再計算ではこの軸が無視されてスコアが変動します。<br />
+                                必要であれば「無効化（Switch）」で一時的に外すこともできます。
+                              </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteAxis(axis)} className="bg-destructive text-destructive-foreground">削除</AlertDialogAction>
+                              <AlertDialogAction onClick={() => handleDeleteAxis(axis)} className="bg-destructive text-destructive-foreground">削除する</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
