@@ -264,6 +264,7 @@ export type Database = {
           admin_memo: string | null
           adopted_by: string[]
           author_id: string
+          author_name_snapshot: string | null
           category: string
           cause: string
           created_at: string
@@ -289,6 +290,7 @@ export type Database = {
           admin_memo?: string | null
           adopted_by?: string[]
           author_id: string
+          author_name_snapshot?: string | null
           category: string
           cause: string
           created_at?: string
@@ -314,6 +316,7 @@ export type Database = {
           admin_memo?: string | null
           adopted_by?: string[]
           author_id?: string
+          author_name_snapshot?: string | null
           category?: string
           cause?: string
           created_at?: string
