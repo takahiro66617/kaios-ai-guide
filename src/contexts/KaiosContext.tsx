@@ -347,7 +347,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     <KaiosContext.Provider value={{
       people, kaizenItems, isLoading,
       evalAxes, refreshEvalAxes, addEvalAxis, updateEvalAxis, deleteEvalAxis, updateAxisWeight,
-      addKaizenItem, updateKaizenStatus,
+      addKaizenItem, updateKaizenStatus, updateExecutionStage, updateAdminMemo, getStageHistory,
       getPersonById, getKaizenByPerson, getKaizenByDepartment,
       calculateImpactScore, refreshItems, refreshPeople,
       addPerson, updatePerson, deletePerson,
