@@ -358,6 +358,7 @@ const AdminDashboardPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      <DepartmentMasterModal open={deptModalOpen} onOpenChange={setDeptModalOpen} />
     </div>
   );
 };
