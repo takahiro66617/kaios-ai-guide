@@ -43,6 +43,9 @@ const EvaluationSettings = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newAxis, setNewAxis] = useState({ name: "", key: "", description: "", tooltip: "", leftLabel: "低 (0%)", rightLabel: "高 (100%)" });
   const [history, setHistory] = useState<any[]>([]);
+  const [editingAxis, setEditingAxis] = useState<EvalAxis | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", tooltip: "", leftLabel: "", rightLabel: "", defaultValue: 50 });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const activeAxes = evalAxes.filter(a => a.isActive);
 
@@ -137,12 +140,41 @@ const EvaluationSettings = () => {
 
   const handleDeleteAxis = async (axis: EvalAxis) => {
     await deleteEvalAxis(axis.id);
-    toast.success(`評価軸「${axis.name}」を削除しました`);
+    toast.success(`評価軸「${axis.name}」を削除しました（履歴のスコアは保持されます）`);
   };
 
   const handleToggleActive = async (axis: EvalAxis) => {
     await updateEvalAxis(axis.id, { isActive: !axis.isActive });
     toast.info(`評価軸「${axis.name}」を${axis.isActive ? "無効" : "有効"}にしました`);
+  };
+
+  const openEditAxis = (axis: EvalAxis) => {
+    setEditingAxis(axis);
+    setEditForm({
+      name: axis.name,
+      description: axis.description,
+      tooltip: axis.tooltip,
+      leftLabel: axis.leftLabel,
+      rightLabel: axis.rightLabel,
+      defaultValue: axis.defaultValue,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAxis) return;
+    if (!editForm.name.trim()) { toast.error("軸名は必須です"); return; }
+    setSavingEdit(true);
+    await updateEvalAxis(editingAxis.id, {
+      name: editForm.name.trim(),
+      description: editForm.description,
+      tooltip: editForm.tooltip,
+      leftLabel: editForm.leftLabel || "低 (0%)",
+      rightLabel: editForm.rightLabel || "高 (100%)",
+      defaultValue: editForm.defaultValue,
+    });
+    setSavingEdit(false);
+    toast.success(`評価軸「${editForm.name}」を更新しました`);
+    setEditingAxis(null);
   };
 
   const handleReset = () => {
