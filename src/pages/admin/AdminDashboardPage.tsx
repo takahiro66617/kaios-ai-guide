@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Loader2 } from "lucide-react";
+import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import DepartmentMasterModal from "@/components/admin/DepartmentMasterModal";
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
   "提案中": "bg-blue-500/10 text-blue-700 border-blue-200",
