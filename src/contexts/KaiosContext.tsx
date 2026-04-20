@@ -24,7 +24,7 @@ export interface KaizenItem {
   category: string;
   reproducibility: "高" | "中" | "低";
   tags: string[];
-  status: "新規" | "構造化済み" | "ナレッジ登録済み" | "実行中" | "完了";
+  status: KaizenStatus;
   authorId: string;
   authorNameSnapshot: string;
   createdAt: string;
@@ -37,7 +37,11 @@ export interface KaizenItem {
   stageChangedAt: string | null;
   stageChangedBy: string | null;
   adminMemo: string;
+  authorNote: string;
 }
+
+export type KaizenStatus = "下書き" | "申請中" | "承認済み" | "差戻し";
+export const KAIZEN_STATUSES: KaizenStatus[] = ["下書き", "申請中", "承認済み", "差戻し"];
 
 export type ExecutionStage = "提案中" | "実行予定" | "実行済み";
 export const EXECUTION_STAGES: ExecutionStage[] = ["提案中", "実行予定", "実行済み"];
