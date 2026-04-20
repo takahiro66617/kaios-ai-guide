@@ -36,6 +36,7 @@ function validateUsername(u: string): string | null {
 const PeopleManagementPage = () => {
   const { people, getKaizenByPerson, refreshPeople } = useKaios();
   const { user: currentUser } = useAuth();
+  const { departments } = useDepartments(false);
 
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
   const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
@@ -46,7 +47,7 @@ const PeopleManagementPage = () => {
   const [addMode, setAddMode] = useState<"new" | "link">("new");
   const [linkTargetPerson, setLinkTargetPerson] = useState<Person | null>(null);
   const [fName, setFName] = useState("");
-  const [fDept, setFDept] = useState(DEPARTMENTS[0]);
+  const [fDept, setFDept] = useState("");
   const [fRole, setFRole] = useState("");
   const [fYears, setFYears] = useState(1);
   const [fUsername, setFUsername] = useState("");
@@ -76,7 +77,7 @@ const PeopleManagementPage = () => {
   useEffect(() => { loadAuthData(); }, []);
 
   const resetAddForm = () => {
-    setFName(""); setFDept(DEPARTMENTS[0]); setFRole(""); setFYears(1);
+    setFName(""); setFDept(departments[0]?.name ?? ""); setFRole(""); setFYears(1);
     setFUsername(""); setFPassword(""); setFIsAdmin(false);
     setLinkTargetPerson(null); setAddMode("new");
   };
