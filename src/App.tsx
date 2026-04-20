@@ -41,7 +41,7 @@ const App = () => (
                     <Route path="/similar-cases" element={<SimilarCasesPage />} />
                     <Route path="/impact" element={<ImpactPage />} />
                     <Route path="/missions" element={<MissionsPage />} />
-                    <Route path="/eval-settings" element={<EvaluationSettings />} />
+                    <Route path="/eval-settings" element={<AdminGuard><EvaluationSettings /></AdminGuard>} />
                     <Route path="/people" element={<PeopleManagementPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/debug-reports" element={<DebugReportsPage />} />
