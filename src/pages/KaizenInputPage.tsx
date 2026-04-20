@@ -395,12 +395,14 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
       <SubmissionCompleteModal
         open={showCompleteModal}
-        onClose={() => setShowCompleteModal(false)}
+        onOpenChange={setShowCompleteModal}
         impactScore={completionData.impactScore}
         xpGained={completionData.xpGained}
         oldLevel={completionData.oldLevel}
         newLevel={completionData.newLevel}
         completedMissions={completionData.completedMissions}
+        onGoToDashboard={() => { setShowCompleteModal(false); navigate("/"); }}
+        onSubmitAnother={() => { setShowCompleteModal(false); handleReset(); }}
       />
     </main>
   );
