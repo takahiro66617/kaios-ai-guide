@@ -1,13 +1,12 @@
 import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
-import { Sparkles, Loader2, ShieldCheck } from "lucide-react";
+import { Sparkles, Loader2, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const LoginPage = () => {
   const { user, signIn, loading } = useAuth();
@@ -18,7 +17,6 @@ const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(false);
 
   if (!loading && user) return <Navigate to={from} replace />;
 
@@ -29,41 +27,27 @@ const LoginPage = () => {
     setSubmitting(false);
     if (res.ok) {
       toast.success("ログインしました");
-      navigate(from, { replace: true });
+      // 現場ログインからは管理者でも常にダッシュボードへ
+      navigate(from === "/admin/login" ? "/" : from, { replace: true });
     } else {
       toast.error(res.error || "ログインに失敗しました");
     }
   };
 
-  const handleBootstrap = async () => {
-    setBootstrapping(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("bootstrap-admin", {
-        body: { username: "admin", password: "admin1234", display_name: "管理者" },
-      });
-      if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || error?.message || "失敗しました");
-      } else {
-        toast.success("初期管理者を作成しました（admin / admin1234）");
-        setUsername("admin");
-        setPassword("admin1234");
-      }
-    } finally {
-      setBootstrapping(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-kaios-surface p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-4">
+      <Card className="w-full max-w-md border-sky-200 shadow-lg">
         <CardHeader className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 flex items-center justify-center shadow-sm">
+              <Users className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight">KAIOS</span>
+            <div>
+              <span className="text-lg font-bold tracking-tight block leading-tight">KAIOS</span>
+              <span className="text-xs text-sky-700 font-medium">現場メンバー ログイン</span>
+            </div>
           </div>
-          <CardTitle>ログイン</CardTitle>
+          <CardTitle className="text-xl">ログイン</CardTitle>
           <p className="text-sm text-muted-foreground">
             管理者から発行されたユーザー名とパスワードを入力してください。
           </p>
@@ -92,32 +76,26 @@ const LoginPage = () => {
                 className="mt-1"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700"
+              disabled={submitting}
+            >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               ログイン
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-2">
-              初回セットアップ：管理者アカウントが未作成の場合のみ動作します。
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full gap-1.5"
-              onClick={handleBootstrap}
-              disabled={bootstrapping}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              {bootstrapping ? "作成中…" : "初期管理者(admin / admin1234)を作成"}
-            </Button>
-          </div>
-
-          <div className="mt-4 text-center">
-            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+          <div className="mt-6 pt-6 border-t border-border flex items-center justify-between text-xs">
+            <Link to="/" className="text-muted-foreground hover:text-foreground">
               ← ホームへ戻る
+            </Link>
+            <Link
+              to="/admin/login"
+              className="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 font-medium"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              管理者ログイン
             </Link>
           </div>
         </CardContent>
