@@ -226,7 +226,28 @@ const EvaluationSettings = () => {
               </DialogContent>
             </Dialog>
 
-            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving} data-tour="save-button">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={isRecalculating || isSaving}>
+                  {isRecalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                  AIスコア再計算
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>全件のAIスコアを再計算しますか？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    現在保存されている評価軸とウェイトに基づいて、すべての改善案のインパクトスコアをAIが再計算します。改善案の件数によっては数十秒かかります。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleRecalculateOnly}>再計算する</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving || isRecalculating} data-tour="save-button">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {isSaving ? "AI再計算中..." : "設定を保存"}
             </Button>
