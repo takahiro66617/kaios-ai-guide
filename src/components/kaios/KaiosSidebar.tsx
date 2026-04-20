@@ -1,4 +1,4 @@
-import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target } from "lucide-react";
+import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target, Lock } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useGuestProfile, LEVEL_TITLES } from "@/contexts/GuestProfileContext";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,7 @@ const menuItems = [
   { title: "評価方針設定", subtitle: "AIの評価基準をチューニング", icon: Sparkles, path: "/eval-settings" },
   { title: "提案者管理", subtitle: "メンバーの追加・編集", icon: Users, path: "/people" },
   { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
+  { title: "管理者モード", subtitle: "経営層・管理者向け画面", icon: Lock, path: "/admin" },
 ];
 
 interface KaiosSidebarProps {

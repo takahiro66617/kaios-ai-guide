@@ -31,6 +31,23 @@ export interface KaizenItem {
   occurrencePlace: string;
   frequency: string;
   numericalEvidence: string;
+  executionStage: "提案中" | "実行予定" | "実行済み";
+  stageChangedAt: string | null;
+  stageChangedBy: string | null;
+  adminMemo: string;
+}
+
+export type ExecutionStage = "提案中" | "実行予定" | "実行済み";
+export const EXECUTION_STAGES: ExecutionStage[] = ["提案中", "実行予定", "実行済み"];
+
+export interface StageHistoryEntry {
+  id: string;
+  kaizenItemId: string;
+  fromStage: string | null;
+  toStage: string;
+  changedBy: string;
+  reason: string | null;
+  createdAt: string;
 }
 
 export interface EvalAxis {
@@ -76,6 +93,10 @@ const mapRowToItem = (row: any): KaizenItem => ({
   occurrencePlace: row.occurrence_place || "",
   frequency: row.frequency || "",
   numericalEvidence: row.numerical_evidence || "",
+  executionStage: (row.execution_stage as KaizenItem["executionStage"]) || "提案中",
+  stageChangedAt: row.stage_changed_at || null,
+  stageChangedBy: row.stage_changed_by || null,
+  adminMemo: row.admin_memo || "",
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
@@ -102,8 +123,11 @@ interface KaiosContextType {
   updateEvalAxis: (id: string, updates: Partial<EvalAxis>) => Promise<void>;
   deleteEvalAxis: (id: string) => Promise<void>;
   updateAxisWeight: (id: string, weight: number) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
   updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
+  updateExecutionStage: (id: string, stage: ExecutionStage, changedBy?: string, reason?: string) => Promise<void>;
+  updateAdminMemo: (id: string, memo: string) => Promise<void>;
+  getStageHistory: (kaizenItemId: string) => Promise<StageHistoryEntry[]>;
   getPersonById: (id: string) => Person | undefined;
   getKaizenByPerson: (personId: string) => KaizenItem[];
   getKaizenByDepartment: (dept: string) => KaizenItem[];
@@ -280,6 +304,49 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     })();
   }, []);
 
+  const updateExecutionStage = useCallback(async (id: string, stage: ExecutionStage, changedBy = "admin", reason?: string) => {
+    const current = kaizenItems.find(i => i.id === id);
+    const fromStage = current?.executionStage || null;
+    const now = new Date().toISOString();
+    try {
+      const { error } = await supabase
+        .from("kaizen_items")
+        .update({ execution_stage: stage, stage_changed_at: now, stage_changed_by: changedBy } as any)
+        .eq("id", id);
+      if (error) { toast.error("実行段階の更新に失敗しました"); return; }
+      await supabase.from("execution_stage_history" as any).insert({
+        kaizen_item_id: id, from_stage: fromStage, to_stage: stage, changed_by: changedBy, reason: reason || null,
+      });
+      setKaizenItems(prev => prev.map(i => i.id === id
+        ? { ...i, executionStage: stage, stageChangedAt: now, stageChangedBy: changedBy }
+        : i));
+      toast.success(`実行段階を「${stage}」に更新しました`);
+    } catch (e) { console.error("Error updating stage:", e); toast.error("実行段階の更新に失敗しました"); }
+  }, [kaizenItems]);
+
+  const updateAdminMemo = useCallback(async (id: string, memo: string) => {
+    try {
+      const { error } = await supabase.from("kaizen_items").update({ admin_memo: memo } as any).eq("id", id);
+      if (error) { toast.error("メモの保存に失敗しました"); return; }
+      setKaizenItems(prev => prev.map(i => i.id === id ? { ...i, adminMemo: memo } : i));
+    } catch (e) { console.error("Error updating memo:", e); }
+  }, []);
+
+  const getStageHistory = useCallback(async (kaizenItemId: string): Promise<StageHistoryEntry[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("execution_stage_history" as any)
+        .select("*")
+        .eq("kaizen_item_id", kaizenItemId)
+        .order("created_at", { ascending: false });
+      if (error || !data) return [];
+      return (data as any[]).map((r: any) => ({
+        id: r.id, kaizenItemId: r.kaizen_item_id, fromStage: r.from_stage,
+        toStage: r.to_stage, changedBy: r.changed_by, reason: r.reason, createdAt: r.created_at,
+      }));
+    } catch (e) { console.error("Error fetching history:", e); return []; }
+  }, []);
+
   const addPerson = useCallback(async (person: Omit<Person, "id" | "isActive">): Promise<Person | null> => {
     try {
       const { data, error } = await supabase.from("people").insert({
@@ -323,7 +390,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     <KaiosContext.Provider value={{
       people, kaizenItems, isLoading,
       evalAxes, refreshEvalAxes, addEvalAxis, updateEvalAxis, deleteEvalAxis, updateAxisWeight,
-      addKaizenItem, updateKaizenStatus,
+      addKaizenItem, updateKaizenStatus, updateExecutionStage, updateAdminMemo, getStageHistory,
       getPersonById, getKaizenByPerson, getKaizenByDepartment,
       calculateImpactScore, refreshItems, refreshPeople,
       addPerson, updatePerson, deletePerson,
