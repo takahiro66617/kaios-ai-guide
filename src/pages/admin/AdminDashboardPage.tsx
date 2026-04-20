@@ -96,9 +96,14 @@ const AdminDashboardPage = () => {
             <h1 className="text-xl font-bold text-foreground">管理者ダッシュボード</h1>
             <p className="text-xs text-muted-foreground mt-0.5">経営層・管理者向けの実行管理画面</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { logout(); toast.success("ログアウトしました"); }}>
-            <LogOut className="w-4 h-4 mr-2" />ログアウト
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/eval-settings"><Sparkles className="w-4 h-4 mr-2" />評価方針設定</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { logout(); toast.success("ログアウトしました"); }}>
+              <LogOut className="w-4 h-4 mr-2" />ログアウト
+            </Button>
+          </div>
         </div>
       </div>
 
