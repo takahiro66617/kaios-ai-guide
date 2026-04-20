@@ -86,18 +86,6 @@ const LoginPage = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-border flex items-center justify-between text-xs">
-            <Link to="/" className="text-muted-foreground hover:text-foreground">
-              ← ホームへ戻る
-            </Link>
-            <Link
-              to="/admin/login"
-              className="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 font-medium"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              管理者ログイン
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

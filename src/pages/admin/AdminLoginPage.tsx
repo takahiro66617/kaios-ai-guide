@@ -13,7 +13,7 @@ const AdminLoginPage = () => {
   const { user, isAdmin, signIn, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || "/admin";
+  const from = (location.state as any)?.from?.pathname || "/admin/dashboard";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
