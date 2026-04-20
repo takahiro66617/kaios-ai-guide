@@ -117,7 +117,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
     setEditedDraft((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = async () => {
+  const handleRegister = async (asDraft: boolean) => {
     if (!editedDraft) return;
     if (!mePerson) { toast.error("あなたの提案者プロフィールが未登録です。"); return; }
     const relatedDepts = editedDraft.related_departments || [];
@@ -138,9 +138,18 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       occurrencePlace: step1Data.occurrencePlace,
       frequency: step1Data.frequency,
       numericalEvidence: step1Data.numericalEvidence,
+      status: asDraft ? "下書き" : "申請中",
     });
 
     if (!savedItem) return;
+
+    if (asDraft) {
+      toast.success("下書きとして保存しました");
+      setStep(4);
+      return;
+    }
+
+    toast.success("ナレッジ化を申請しました。管理者の承認をお待ちください。");
 
     await incrementSubmissions();
     const baseXp = 30;
@@ -354,12 +363,18 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                 <EditableField label="部門" value={editedDraft.department || ""} onChange={(v) => handleEditField("department", v)} />
                 <EditableField label="カテゴリ" value={editedDraft.category || ""} onChange={(v) => handleEditField("category", v)} />
               </div>
-              <div className="flex justify-between gap-2 pt-3">
+              <div className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
                 <Button variant="outline" onClick={handleReset}>最初からやり直す</Button>
-                <Button onClick={handleRegister} className="gap-2">
-                  <CheckCircle2 className="w-4 h-4" />
-                  この内容で登録する
-                </Button>
+                <div className="flex gap-2 flex-wrap justify-end">
+                  <Button variant="secondary" onClick={() => handleRegister(true)} className="gap-2">
+                    <FileText className="w-4 h-4" />
+                    下書き保存
+                  </Button>
+                  <Button onClick={() => handleRegister(false)} className="gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    申請する（管理者承認後にナレッジ化）
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
