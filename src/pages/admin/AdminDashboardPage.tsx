@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { useKaios, EXECUTION_STAGES, ExecutionStage, KaizenItem, StageHistoryEntry } from "@/contexts/KaiosContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
@@ -26,7 +24,7 @@ const daysSince = (iso: string | null) => {
 };
 
 const AdminDashboardPage = () => {
-  const { kaizenItems, evalAxes, updateExecutionStage, updateAdminMemo, getStageHistory, getPersonById, refreshItems } = useKaios();
+  const { kaizenItems, updateExecutionStage, updateAdminMemo, getStageHistory, getPersonById } = useKaios();
   const { signOut } = useAuth();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<ExecutionStage | "all">("all");
@@ -38,7 +36,6 @@ const AdminDashboardPage = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStage, setBulkStage] = useState<ExecutionStage>("実行予定");
   const [bulkApplying, setBulkApplying] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
 
   const filteredItems = useMemo(() => {
     return kaizenItems.filter(item => {
@@ -132,32 +129,6 @@ const AdminDashboardPage = () => {
     setDetailItem({ ...detailItem, adminMemo: memoDraft });
   };
 
-  const handleRecalculate = async () => {
-    if (!evalAxes || evalAxes.length === 0) {
-      toast.error("評価軸が未設定です");
-      return;
-    }
-    setRecalculating(true);
-    const tid = toast.loading("AIが全件のインパクトを再計算中...");
-    try {
-      const { data, error } = await supabase.functions.invoke("recalculate-impact", {
-        body: {
-          axes: evalAxes
-            .filter(a => a.isActive)
-            .map(a => ({ key: a.key, name: a.name, weight: a.weight, description: a.description })),
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success(data?.message || "再計算が完了しました", { id: tid });
-      await refreshItems();
-    } catch (e) {
-      toast.error(`再計算に失敗: ${e instanceof Error ? e.message : "Unknown"}`, { id: tid });
-    } finally {
-      setRecalculating(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -165,16 +136,11 @@ const AdminDashboardPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">管理者ダッシュボード</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">改善案の実行段階管理・メモ・AI再計算（集計の可視化はインパクト分析へ）</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              改善案の実行段階管理・管理者メモの運用画面です。AIスコアの再計算は「評価方針設定」から、集計の可視化は「インパクト分析」から行います。
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRecalculate} disabled={recalculating}>
-              {recalculating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-              AIスコア再計算
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/eval-settings"><Sparkles className="w-4 h-4 mr-2" />評価方針設定</Link>
-            </Button>
             <Button variant="outline" size="sm" onClick={async () => { await signOut(); toast.success("ログアウトしました"); }}>
               <LogOut className="w-4 h-4 mr-2" />ログアウト
             </Button>

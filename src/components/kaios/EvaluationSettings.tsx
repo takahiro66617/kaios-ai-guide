@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X, Loader2, Plus, Trash2, GripVertical } from "lucide-react";
+import { RefreshCw, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, Loader2, Plus, Trash2, GripVertical, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKaios, type EvalAxis } from "@/contexts/KaiosContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ const EvaluationSettings = () => {
   const [localWeights, setLocalWeights] = useState<LocalWeight[]>([]);
   const [savedWeights, setSavedWeights] = useState<LocalWeight[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newAxis, setNewAxis] = useState({ name: "", key: "", description: "", tooltip: "", leftLabel: "低 (0%)", rightLabel: "高 (100%)" });
   const [history, setHistory] = useState<any[]>([]);
@@ -147,6 +148,31 @@ const EvaluationSettings = () => {
     toast.info("デフォルト値に戻しました");
   };
 
+  const handleRecalculateOnly = async () => {
+    if (activeAxes.length === 0) { toast.error("有効な評価軸がありません"); return; }
+    setIsRecalculating(true);
+    const tid = toast.loading("AIが全件のインパクトを再計算中...");
+    try {
+      const axesForAI = activeAxes.map(a => ({
+        key: a.key, name: a.name, description: a.description, weight: a.weight,
+      }));
+      const { data, error } = await supabase.functions.invoke("recalculate-impact", {
+        body: { axes: axesForAI },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      await refreshItems();
+      toast.success("全件のAIスコアを再計算しました", {
+        id: tid,
+        description: `${(data as any)?.updated ?? 0}件の改善案を更新しました`,
+      });
+    } catch (e) {
+      toast.error(`再計算に失敗: ${e instanceof Error ? e.message : "Unknown"}`, { id: tid });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
@@ -200,7 +226,28 @@ const EvaluationSettings = () => {
               </DialogContent>
             </Dialog>
 
-            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving} data-tour="save-button">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={isRecalculating || isSaving}>
+                  {isRecalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                  AIスコア再計算
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>全件のAIスコアを再計算しますか？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    現在保存されている評価軸とウェイトに基づいて、すべての改善案のインパクトスコアをAIが再計算します。改善案の件数によっては数十秒かかります。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleRecalculateOnly}>再計算する</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={!hasChanges || isSaving || isRecalculating} data-tour="save-button">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {isSaving ? "AI再計算中..." : "設定を保存"}
             </Button>
