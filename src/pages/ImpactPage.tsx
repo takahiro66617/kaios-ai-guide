@@ -57,10 +57,10 @@ const DATE_RANGE_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { value: "all", label: "全ステータス" },
-  { value: "構造化済み", label: "構造化済み" },
-  { value: "ナレッジ登録済み", label: "ナレッジ登録済み" },
-  { value: "実行中", label: "実行中" },
-  { value: "完了", label: "完了" },
+  { value: "下書き", label: "下書き" },
+  { value: "申請中", label: "申請中" },
+  { value: "承認済み", label: "承認済み" },
+  { value: "差戻し", label: "差戻し" },
 ];
 
 const SORT_OPTIONS = [
