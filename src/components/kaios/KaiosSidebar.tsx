@@ -1,6 +1,6 @@
-import { Settings, Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target, Lock, LogOut } from "lucide-react";
+import { Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target, Lock, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { useGuestProfile, LEVEL_TITLES } from "@/contexts/GuestProfileContext";
+import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,8 @@ interface KaiosSidebarProps {
 
 const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
   const location = useLocation();
-  const { profile: gprofile, levelTitle, levelProgress, xpToNextLevel } = useGuestProfile();
+  const { profile: gprofile, levelTitle, levelProgress } = useGuestProfile();
   const { profile: authProfile, isAdmin, signOut } = useAuth();
-
-  const menuItems = isAdmin ? [...baseMenu, ...adminMenu] : baseMenu;
 
   return (
     <aside className={`
@@ -45,17 +43,15 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-auto">
-        {menuItems.map((item) => {
+        {/* 現場機能 */}
+        <div className="px-2 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">現場機能</div>
+        {baseMenu.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <Link
-              key={item.title}
-              to={item.path}
-              onClick={onClose}
+            <Link key={item.title} to={item.path} onClick={onClose}
               className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
                 isActive ? "bg-kaios-brand-light text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
+              }`}>
               <item.icon className={`w-5 h-5 mt-0.5 shrink-0 ${isActive ? "text-primary" : ""}`} />
               <div>
                 <div className={`text-sm font-medium ${isActive ? "text-primary" : "text-foreground"}`}>{item.title}</div>
@@ -64,6 +60,27 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <>
+            <div className="px-2 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 border-t border-border mt-2">管理機能</div>
+            {adminMenu.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link key={item.title} to={item.path} onClick={onClose}
+                  className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                    isActive ? "bg-amber-100 dark:bg-amber-900/30" : "text-muted-foreground hover:bg-muted"
+                  }`}>
+                  <item.icon className={`w-5 h-5 mt-0.5 shrink-0 ${isActive ? "text-amber-700 dark:text-amber-400" : ""}`} />
+                  <div>
+                    <div className={`text-sm font-medium ${isActive ? "text-amber-700 dark:text-amber-400" : "text-foreground"}`}>{item.title}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                  </div>
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-border space-y-3">
@@ -73,14 +90,11 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-foreground truncate">
-              {authProfile?.display_name || "ゲスト"}
-              {isAdmin && <span className="ml-1 text-xs text-primary">[管理者]</span>}
+              {authProfile?.display_name || "メンバー"}
+              {isAdmin && <span className="ml-1 text-xs text-amber-600">[管理者]</span>}
             </div>
             <div className="text-xs text-muted-foreground">Lv.{gprofile?.level || 1} {levelTitle} ・ {gprofile?.xp || 0}XP</div>
           </div>
-          <Link to="/settings" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <Settings className="w-4 h-4" />
-          </Link>
         </div>
         <Progress value={levelProgress} className="h-1.5" />
         <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => signOut()}>
