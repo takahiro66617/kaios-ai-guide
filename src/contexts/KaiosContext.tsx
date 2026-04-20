@@ -132,8 +132,14 @@ interface KaiosContextType {
   updateEvalAxis: (id: string, updates: Partial<EvalAxis>) => Promise<void>;
   deleteEvalAxis: (id: string) => Promise<void>;
   updateAxisWeight: (id: string, weight: number) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
-  updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus }) => Promise<KaizenItem | null>;
+  updateKaizenStatus: (id: string, status: KaizenStatus) => Promise<void>;
+  submitForApproval: (id: string) => Promise<void>;
+  approveKaizen: (id: string) => Promise<void>;
+  rejectKaizen: (id: string, reason?: string) => Promise<void>;
+  updateAuthorNote: (id: string, note: string) => Promise<void>;
+  editKaizenItem: (id: string, updates: Partial<Omit<KaizenItem, "id" | "createdAt" | "authorId">>) => Promise<void>;
+  deleteKaizenItem: (id: string) => Promise<void>;
   updateExecutionStage: (id: string, stage: ExecutionStage, changedBy?: string, reason?: string) => Promise<void>;
   updateAdminMemo: (id: string, memo: string) => Promise<void>;
   getStageHistory: (kaizenItemId: string) => Promise<StageHistoryEntry[]>;
