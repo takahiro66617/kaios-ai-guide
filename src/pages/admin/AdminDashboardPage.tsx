@@ -37,6 +37,7 @@ const AdminDashboardPage = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStage, setBulkStage] = useState<ExecutionStage>("実行予定");
   const [bulkApplying, setBulkApplying] = useState(false);
+  const [deptModalOpen, setDeptModalOpen] = useState(false);
 
   const filteredItems = useMemo(() => {
     return kaizenItems.filter(item => {
