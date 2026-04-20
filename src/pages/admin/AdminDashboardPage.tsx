@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { useKaios, EXECUTION_STAGES, ExecutionStage, KaizenItem, StageHistoryEntry } from "@/contexts/KaiosContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { LogOut, Search, Clock, History as HistoryIcon, FileText, AlertTriangle, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
@@ -26,7 +24,7 @@ const daysSince = (iso: string | null) => {
 };
 
 const AdminDashboardPage = () => {
-  const { kaizenItems, evalAxes, updateExecutionStage, updateAdminMemo, getStageHistory, getPersonById, refreshItems } = useKaios();
+  const { kaizenItems, updateExecutionStage, updateAdminMemo, getStageHistory, getPersonById } = useKaios();
   const { signOut } = useAuth();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<ExecutionStage | "all">("all");
@@ -38,7 +36,6 @@ const AdminDashboardPage = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStage, setBulkStage] = useState<ExecutionStage>("実行予定");
   const [bulkApplying, setBulkApplying] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
 
   const filteredItems = useMemo(() => {
     return kaizenItems.filter(item => {
