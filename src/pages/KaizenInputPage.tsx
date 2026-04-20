@@ -411,6 +411,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                       adoptedBy: editedDraft.related_departments || [],
                       impactScore: 0, occurrencePlace: step1Data.occurrencePlace,
                       frequency: step1Data.frequency, numericalEvidence: step1Data.numericalEvidence,
+                      executionStage: "提案中", stageChangedAt: null, stageChangedBy: null, adminMemo: "",
                     })}
                   </p>
                   <p className="text-xs text-muted-foreground">/ 100</p>
