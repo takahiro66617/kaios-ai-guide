@@ -1,4 +1,4 @@
-import { Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target, Lock, LogOut } from "lucide-react";
+import { Lightbulb, Search, BarChart3, Sparkles, Users, Bug, Home, Target, LogOut, LayoutDashboard, SlidersHorizontal } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,9 +14,10 @@ const baseMenu = [
 ];
 
 const adminMenu = [
+  { title: "管理者ダッシュボード", subtitle: "提案一覧・AI再計算・実行段階", icon: LayoutDashboard, path: "/admin/dashboard" },
+  { title: "評価方針設定", subtitle: "評価軸・ウェイトの調整", icon: SlidersHorizontal, path: "/eval-settings" },
   { title: "提案者管理", subtitle: "メンバー・ID/PWの発行", icon: Users, path: "/people" },
   { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
-  { title: "管理者モード", subtitle: "経営層・管理者向け画面", icon: Lock, path: "/admin" },
 ];
 
 interface KaiosSidebarProps {
