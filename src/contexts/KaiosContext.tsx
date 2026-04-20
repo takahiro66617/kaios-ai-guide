@@ -304,6 +304,49 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
     })();
   }, []);
 
+  const updateExecutionStage = useCallback(async (id: string, stage: ExecutionStage, changedBy = "admin", reason?: string) => {
+    const current = kaizenItems.find(i => i.id === id);
+    const fromStage = current?.executionStage || null;
+    const now = new Date().toISOString();
+    try {
+      const { error } = await supabase
+        .from("kaizen_items")
+        .update({ execution_stage: stage, stage_changed_at: now, stage_changed_by: changedBy } as any)
+        .eq("id", id);
+      if (error) { toast.error("実行段階の更新に失敗しました"); return; }
+      await supabase.from("execution_stage_history" as any).insert({
+        kaizen_item_id: id, from_stage: fromStage, to_stage: stage, changed_by: changedBy, reason: reason || null,
+      });
+      setKaizenItems(prev => prev.map(i => i.id === id
+        ? { ...i, executionStage: stage, stageChangedAt: now, stageChangedBy: changedBy }
+        : i));
+      toast.success(`実行段階を「${stage}」に更新しました`);
+    } catch (e) { console.error("Error updating stage:", e); toast.error("実行段階の更新に失敗しました"); }
+  }, [kaizenItems]);
+
+  const updateAdminMemo = useCallback(async (id: string, memo: string) => {
+    try {
+      const { error } = await supabase.from("kaizen_items").update({ admin_memo: memo } as any).eq("id", id);
+      if (error) { toast.error("メモの保存に失敗しました"); return; }
+      setKaizenItems(prev => prev.map(i => i.id === id ? { ...i, adminMemo: memo } : i));
+    } catch (e) { console.error("Error updating memo:", e); }
+  }, []);
+
+  const getStageHistory = useCallback(async (kaizenItemId: string): Promise<StageHistoryEntry[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("execution_stage_history" as any)
+        .select("*")
+        .eq("kaizen_item_id", kaizenItemId)
+        .order("created_at", { ascending: false });
+      if (error || !data) return [];
+      return (data as any[]).map((r: any) => ({
+        id: r.id, kaizenItemId: r.kaizen_item_id, fromStage: r.from_stage,
+        toStage: r.to_stage, changedBy: r.changed_by, reason: r.reason, createdAt: r.created_at,
+      }));
+    } catch (e) { console.error("Error fetching history:", e); return []; }
+  }, []);
+
   const addPerson = useCallback(async (person: Omit<Person, "id" | "isActive">): Promise<Person | null> => {
     try {
       const { data, error } = await supabase.from("people").insert({
