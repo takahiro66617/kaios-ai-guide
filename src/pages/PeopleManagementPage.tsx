@@ -292,9 +292,15 @@ const PeopleManagementPage = () => {
             </div>
             <div>
               <Label>部門</Label>
-              <select value={fDept} onChange={e => setFDept(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <Select value={fDept} onValueChange={setFDept}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="部門を選択" /></SelectTrigger>
+                <SelectContent>
+                  {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {departments.length === 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">部門が未登録です。管理者ダッシュボードから「部門マスタ」を登録してください。</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

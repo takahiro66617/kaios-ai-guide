@@ -20,11 +20,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type Person } from "@/contexts/KaiosContext";
 import { LEVEL_TITLES, LEVEL_THRESHOLDS } from "@/contexts/GuestProfileContext";
-
-const DEPARTMENTS = [
-  "カスタマーサポート部", "情報システム部", "営業部", "経営企画部",
-  "製造部", "経理部", "物流部", "総務部", "人事部", "マーケティング部",
-];
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDepartments } from "@/hooks/useDepartments";
 
 function validateUsername(u: string): string | null {
   if (u.length < 3 || u.length > 64) return "ユーザー名は3〜64文字で入力してください";
