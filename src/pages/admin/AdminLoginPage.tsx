@@ -18,7 +18,6 @@ const AdminLoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(false);
 
   if (!loading && user && isAdmin) return <Navigate to={from} replace />;
 
@@ -54,23 +53,8 @@ const AdminLoginPage = () => {
     navigate(from, { replace: true });
   };
 
-  const handleBootstrap = async () => {
-    setBootstrapping(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("bootstrap-admin", {
-        body: { username: "admin", password: "admin1234", display_name: "管理者" },
-      });
-      if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || error?.message || "失敗しました");
-      } else {
-        toast.success("初期管理者を作成しました（admin / admin1234）");
-        setUsername("admin");
-        setPassword("admin1234");
-      }
-    } finally {
-      setBootstrapping(false);
-    }
-  };
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
@@ -133,22 +117,6 @@ const AdminLoginPage = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-700">
-            <p className="text-xs text-slate-500 mb-2">
-              初回セットアップ：管理者アカウントが未作成の場合のみ動作します。
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full gap-1.5 bg-transparent border-slate-700 text-slate-200 hover:bg-slate-800"
-              onClick={handleBootstrap}
-              disabled={bootstrapping}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              {bootstrapping ? "作成中…" : "初期管理者(admin / admin1234)を作成"}
-            </Button>
-          </div>
 
           <div className="mt-4 text-center">
             <Link to="/login" className="text-xs text-slate-400 hover:text-slate-200">
