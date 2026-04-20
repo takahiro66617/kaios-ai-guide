@@ -208,6 +208,7 @@ const EvaluationSettings = () => {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         {/* Header */}
