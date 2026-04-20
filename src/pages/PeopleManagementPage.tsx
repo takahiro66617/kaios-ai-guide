@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  UserPlus, Pencil, Trash2, Users, Building2, KeyRound, ShieldCheck, ShieldOff,
-  Power, PowerOff, Loader2, Copy, LinkIcon, Eye, EyeOff,
+  UserPlus, Users, Building2, ShieldCheck, Loader2, Copy, LinkIcon, Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import AccountDetailModal from "@/components/people/AccountDetailModal";
 
 const DEPARTMENTS = [
   "カスタマーサポート部", "情報システム部", "営業部", "経営企画部",
@@ -41,7 +37,7 @@ function validateUsername(u: string): string | null {
 }
 
 const PeopleManagementPage = () => {
-  const { people, deletePerson, getKaizenByPerson, refreshPeople } = useKaios();
+  const { people, getKaizenByPerson, refreshPeople } = useKaios();
   const { user: currentUser } = useAuth();
 
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
@@ -49,7 +45,6 @@ const PeopleManagementPage = () => {
   const [loading, setLoading] = useState(true);
 
   // ----- Add / Issue dialog -----
-  // mode: "new" = create person + account; "link" = create account for existing person (link_person_id)
   const [addOpen, setAddOpen] = useState(false);
   const [addMode, setAddMode] = useState<"new" | "link">("new");
   const [linkTargetPerson, setLinkTargetPerson] = useState<Person | null>(null);
@@ -62,23 +57,8 @@ const PeopleManagementPage = () => {
   const [fIsAdmin, setFIsAdmin] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  // ----- Edit dialog -----
-  const [editTarget, setEditTarget] = useState<Person | null>(null);
-  const [eName, setEName] = useState("");
-  const [eUsername, setEUsername] = useState("");
-  const [eDept, setEDept] = useState(DEPARTMENTS[0]);
-  const [eRole, setERole] = useState("");
-  const [eYears, setEYears] = useState(1);
-  const [editSaving, setEditSaving] = useState(false);
-
-  // ----- Reset password dialog -----
-  const [resetTarget, setResetTarget] = useState<Person | null>(null);
-  const [resetPw, setResetPw] = useState("");
-  const [resetting, setResetting] = useState(false);
-  const [resetReveal, setResetReveal] = useState(false);
-
-  // ----- Delete confirm -----
-  const [deleteTarget, setDeleteTarget] = useState<Person | null>(null);
+  // ----- Detail modal -----
+  const [detailTarget, setDetailTarget] = useState<Person | null>(null);
 
   // ----- Credential reveal modal (one-time) -----
   const [credentialModal, setCredentialModal] = useState<{ username: string; password: string; name: string } | null>(null);
@@ -104,10 +84,7 @@ const PeopleManagementPage = () => {
     setLinkTargetPerson(null); setAddMode("new");
   };
 
-  const openAddNew = () => {
-    resetAddForm();
-    setAddOpen(true);
-  };
+  const openAddNew = () => { resetAddForm(); setAddOpen(true); };
 
   const openIssueForExisting = (person: Person) => {
     resetAddForm();
@@ -117,7 +94,6 @@ const PeopleManagementPage = () => {
     setFDept(person.department);
     setFRole(person.role || "");
     setFYears(person.yearsAtCompany);
-    // suggest a username
     setFUsername(romanize(person.name) || "");
     setAddOpen(true);
   };
@@ -156,107 +132,6 @@ const PeopleManagementPage = () => {
     await Promise.all([refreshPeople(), loadAuthData()]);
   };
 
-  const openEdit = (person: Person) => {
-    setEditTarget(person);
-    setEName(person.name);
-    setEDept(person.department);
-    setERole(person.role || "");
-    setEYears(person.yearsAtCompany);
-    setEUsername(person.userId ? (profiles[person.userId]?.username ?? "") : "");
-  };
-
-  const handleEditSave = async () => {
-    if (!editTarget) return;
-    if (!eName.trim()) { toast.error("氏名を入力してください"); return; }
-    let usernameChanged = false;
-    if (editTarget.userId) {
-      const cur = profiles[editTarget.userId]?.username ?? "";
-      const next = eUsername.trim();
-      if (next !== cur) {
-        const err = validateUsername(next);
-        if (err) { toast.error(err); return; }
-        usernameChanged = true;
-      }
-    }
-    setEditSaving(true);
-    const { data, error } = await supabase.functions.invoke("admin-update-user", {
-      body: {
-        person_id: editTarget.id,
-        user_id: editTarget.userId,
-        display_name: eName.trim(),
-        department: eDept,
-        role_title: eRole.trim(),
-        years_at_company: eYears,
-        ...(usernameChanged ? { username: eUsername.trim() } : {}),
-      },
-    });
-    setEditSaving(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || "更新に失敗しました");
-      return;
-    }
-    toast.success("更新しました");
-    setEditTarget(null);
-    await Promise.all([refreshPeople(), loadAuthData()]);
-  };
-
-  const handleResetPassword = async () => {
-    if (!resetTarget?.userId) return;
-    if (resetPw.length < 6) { toast.error("パスワードは6文字以上必要です"); return; }
-    setResetting(true);
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "reset_password", user_id: resetTarget.userId, new_password: resetPw },
-    });
-    setResetting(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || "失敗しました"); return;
-    }
-    const username = profiles[resetTarget.userId]?.username ?? "";
-    setCredentialModal({ name: resetTarget.name, username, password: resetPw });
-    setResetTarget(null); setResetPw(""); setResetReveal(false);
-    await loadAuthData();
-  };
-
-  const handleToggleActive = async (person: Person) => {
-    if (!person.userId) { toast.error("ログインアカウント未紐付けです"); return; }
-    const prof = profiles[person.userId];
-    const next = !(prof?.is_active ?? true);
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "set_active", user_id: person.userId, is_active: next },
-    });
-    if (error || (data as any)?.error) { toast.error((data as any)?.error || "失敗"); return; }
-    toast.success(next ? "有効化しました" : "無効化しました");
-    await Promise.all([refreshPeople(), loadAuthData()]);
-  };
-
-  const handleToggleAdmin = async (person: Person) => {
-    if (!person.userId) { toast.error("ログインアカウント未紐付けです"); return; }
-    const next = !adminUserIds.has(person.userId);
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "set_admin", user_id: person.userId, is_admin: next },
-    });
-    if (error || (data as any)?.error) { toast.error((data as any)?.error || "失敗"); return; }
-    toast.success(next ? "管理者権限を付与しました" : "管理者権限を解除しました");
-    await loadAuthData();
-  };
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    if (deleteTarget.userId) {
-      const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-        body: { action: "delete", user_id: deleteTarget.userId },
-      });
-      if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || "削除に失敗"); return;
-      }
-    }
-    // delete people row regardless (kaizen_items kept via author_name_snapshot)
-    await deletePerson(deleteTarget.id);
-    toast.success(`${deleteTarget.name} を削除しました`);
-    setDeleteTarget(null);
-    await Promise.all([refreshPeople(), loadAuthData()]);
-  };
-
   const copy = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -268,6 +143,12 @@ const PeopleManagementPage = () => {
 
   const visiblePeople = useMemo(() => people, [people]);
 
+  // The currently-detailed person can be re-derived from people each render to reflect refreshes
+  const detailPerson = detailTarget ? people.find(p => p.id === detailTarget.id) ?? null : null;
+  const detailProfile = detailPerson?.userId ? profiles[detailPerson.userId] ?? null : null;
+  const detailIsAdmin = detailPerson?.userId ? adminUserIds.has(detailPerson.userId) : false;
+  const detailIsSelf = detailPerson?.userId === currentUser?.id;
+
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
       <div className="p-4 sm:p-6 max-w-[1100px] mx-auto space-y-6">
@@ -278,7 +159,7 @@ const PeopleManagementPage = () => {
               提案者・アカウント管理
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              提案者の登録・編集・アカウント発行・パスワード再発行・権限管理を行います。
+              提案者ごとにアカウント発行・編集・パスワード再発行・権限/状態の管理・活動状況の確認・削除を行えます。
             </p>
           </div>
           <Button className="gap-1.5" onClick={openAddNew}>
@@ -304,7 +185,12 @@ const PeopleManagementPage = () => {
         </div>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">登録済みアカウント</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">登録済みアカウント</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              各行の「詳細管理」から、氏名/ID/部門/役職の編集、パスワード再発行、権限・状態切替、活動状況の確認、削除を行います。
+            </p>
+          </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
@@ -315,7 +201,6 @@ const PeopleManagementPage = () => {
                   const isAdmin = person.userId ? adminUserIds.has(person.userId) : false;
                   const isActive = prof?.is_active ?? person.isActive;
                   const linked = !!person.userId;
-                  const isSelf = person.userId === currentUser?.id;
                   const kaizenCount = getKaizenByPerson(person.id).length;
                   return (
                     <div key={person.id} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-muted/30">
@@ -349,40 +234,20 @@ const PeopleManagementPage = () => {
                           <span className="text-primary">{kaizenCount}件の改善案</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="編集" onClick={() => openEdit(person)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        {!linked && (
-                          <Button variant="outline" size="sm" className="h-8 gap-1" title="この提案者にアカウントを発行"
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!linked ? (
+                          <Button variant="outline" size="sm" className="gap-1.5"
                             onClick={() => openIssueForExisting(person)}>
                             <LinkIcon className="w-3.5 h-3.5" />
                             アカウント発行
                           </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" className="gap-1.5"
+                            onClick={() => setDetailTarget(person)}>
+                            <Settings2 className="w-3.5 h-3.5" />
+                            詳細管理
+                          </Button>
                         )}
-                        {linked && (
-                          <>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title="パスワード再発行"
-                              onClick={() => { setResetTarget(person); setResetPw(""); setResetReveal(false); }}>
-                              <KeyRound className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title={isAdmin ? "管理者権限を解除" : "管理者権限を付与"}
-                              disabled={isSelf}
-                              onClick={() => handleToggleAdmin(person)}>
-                              {isAdmin ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title={isActive ? "無効化" : "有効化"}
-                              disabled={isSelf}
-                              onClick={() => handleToggleActive(person)}>
-                              {isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                            </Button>
-                          </>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                          disabled={isSelf}
-                          onClick={() => setDeleteTarget(person)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
                     </div>
                   );
@@ -461,111 +326,17 @@ const PeopleManagementPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) setEditTarget(null); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editTarget?.name} を編集</DialogTitle>
-            <DialogDescription>
-              提案者情報と{editTarget?.userId ? "ログインID" : "（未紐付け）"}を編集できます。
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>表示名（氏名） <span className="text-destructive">*</span></Label>
-              <Input value={eName} onChange={e => setEName(e.target.value)} className="mt-1" />
-              <p className="text-[10px] text-muted-foreground mt-1">変更すると過去投稿の表示名スナップショットも更新します。</p>
-            </div>
-            {editTarget?.userId && (
-              <div>
-                <Label>ログインID</Label>
-                <Input value={eUsername} onChange={e => setEUsername(e.target.value)} className="mt-1" />
-                <p className="text-[10px] text-muted-foreground mt-1">3〜64文字 / 空白と @ は使えません。変更すると本人は新IDでログインする必要があります。</p>
-              </div>
-            )}
-            <div>
-              <Label>部門</Label>
-              <select value={eDept} onChange={e => setEDept(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>役職</Label>
-                <Input value={eRole} onChange={e => setERole(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label>入社年数</Label>
-                <Input type="number" min={1} max={50} value={eYears} onChange={e => setEYears(Number(e.target.value))} className="mt-1" />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline" disabled={editSaving}>キャンセル</Button></DialogClose>
-            <Button onClick={handleEditSave} disabled={editSaving}>
-              {editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reset PW Dialog */}
-      <Dialog open={!!resetTarget} onOpenChange={(o) => { if (!o) { setResetTarget(null); setResetPw(""); setResetReveal(false); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{resetTarget?.name} のパスワード再発行</DialogTitle>
-            <DialogDescription>
-              新しいパスワードを設定します。発行後に画面で1度だけ表示されます。
-            </DialogDescription>
-          </DialogHeader>
-          <div>
-            <Label>新しいパスワード</Label>
-            <div className="relative mt-1">
-              <Input
-                type={resetReveal ? "text" : "password"}
-                value={resetPw}
-                onChange={e => setResetPw(e.target.value)}
-                placeholder="6文字以上"
-                className="pr-9"
-              />
-              <button
-                type="button"
-                onClick={() => setResetReveal(v => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-              >
-                {resetReveal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline" disabled={resetting}>キャンセル</Button></DialogClose>
-            <Button onClick={handleResetPassword} disabled={resetting}>
-              {resetting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              再発行
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirm */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{deleteTarget?.name}を削除しますか？</AlertDialogTitle>
-            <AlertDialogDescription>
-              ログインアカウントと提案者情報を削除します。本人が投稿した改善案は削除時点の表示名で残ります。この操作は取り消せません。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              削除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Detail Modal (consolidated) */}
+      <AccountDetailModal
+        person={detailPerson}
+        open={!!detailTarget}
+        onOpenChange={(o) => { if (!o) setDetailTarget(null); }}
+        profile={detailProfile}
+        isAdmin={detailIsAdmin}
+        isSelf={detailIsSelf}
+        onChanged={async () => { await Promise.all([refreshPeople(), loadAuthData()]); }}
+        onRequestCredentialReveal={(c) => setCredentialModal(c)}
+      />
 
       {/* Credential Reveal (one-time) */}
       <Dialog open={!!credentialModal} onOpenChange={(o) => { if (!o) setCredentialModal(null); }}>
