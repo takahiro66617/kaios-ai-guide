@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Play, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, X, Loader2, Plus, Trash2, GripVertical } from "lucide-react";
+import { RefreshCw, Save, AlertTriangle, History, Info, Sparkles, Loader2, Plus, Trash2, GripVertical, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKaios, type EvalAxis } from "@/contexts/KaiosContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ const EvaluationSettings = () => {
   const [localWeights, setLocalWeights] = useState<LocalWeight[]>([]);
   const [savedWeights, setSavedWeights] = useState<LocalWeight[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newAxis, setNewAxis] = useState({ name: "", key: "", description: "", tooltip: "", leftLabel: "低 (0%)", rightLabel: "高 (100%)" });
   const [history, setHistory] = useState<any[]>([]);
