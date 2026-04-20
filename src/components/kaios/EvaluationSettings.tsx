@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Save, AlertTriangle, History, Info, Sparkles, Loader2, Plus, Trash2, GripVertical, Wand2 } from "lucide-react";
+import { RefreshCw, Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, Loader2, Plus, Trash2, GripVertical, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKaios, type EvalAxis } from "@/contexts/KaiosContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,6 +146,31 @@ const EvaluationSettings = () => {
   const handleReset = () => {
     setLocalWeights(evalAxes.map(a => ({ id: a.id, weight: a.defaultValue })));
     toast.info("デフォルト値に戻しました");
+  };
+
+  const handleRecalculateOnly = async () => {
+    if (activeAxes.length === 0) { toast.error("有効な評価軸がありません"); return; }
+    setIsRecalculating(true);
+    const tid = toast.loading("AIが全件のインパクトを再計算中...");
+    try {
+      const axesForAI = activeAxes.map(a => ({
+        key: a.key, name: a.name, description: a.description, weight: a.weight,
+      }));
+      const { data, error } = await supabase.functions.invoke("recalculate-impact", {
+        body: { axes: axesForAI },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      await refreshItems();
+      toast.success("全件のAIスコアを再計算しました", {
+        id: tid,
+        description: `${(data as any)?.updated ?? 0}件の改善案を更新しました`,
+      });
+    } catch (e) {
+      toast.error(`再計算に失敗: ${e instanceof Error ? e.message : "Unknown"}`, { id: tid });
+    } finally {
+      setIsRecalculating(false);
+    }
   };
 
   return (
