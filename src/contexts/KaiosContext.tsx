@@ -26,6 +26,7 @@ export interface KaizenItem {
   tags: string[];
   status: "新規" | "構造化済み" | "ナレッジ登録済み" | "実行中" | "完了";
   authorId: string;
+  authorNameSnapshot: string;
   createdAt: string;
   adoptedBy: string[];
   impactScore: number;
@@ -89,6 +90,7 @@ const mapRowToItem = (row: any): KaizenItem => ({
   tags: row.tags || [],
   status: row.status as KaizenItem["status"],
   authorId: row.author_id,
+  authorNameSnapshot: row.author_name_snapshot || "",
   createdAt: row.created_at ? row.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
   adoptedBy: row.adopted_by || [],
   impactScore: row.impact_score || 0,
@@ -282,6 +284,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         solution: item.solution, effect: item.effect, department: item.department,
         category: item.category, reproducibility: item.reproducibility,
         tags: item.tags, status: "ナレッジ登録済み", author_id: item.authorId,
+        author_name_snapshot: item.authorNameSnapshot,
         adopted_by: adoptedBy, impact_score: registeredItem.impactScore,
         occurrence_place: item.occurrencePlace || "", frequency: item.frequency || "",
         numerical_evidence: item.numericalEvidence || "",
