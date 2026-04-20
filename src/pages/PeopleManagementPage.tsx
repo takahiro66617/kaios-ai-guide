@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type Person } from "@/contexts/KaiosContext";
@@ -16,11 +17,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription,
 } from "@/components/ui/dialog";
 import AccountDetailModal from "@/components/people/AccountDetailModal";
-
-const DEPARTMENTS = [
-  "カスタマーサポート部", "情報システム部", "営業部", "経営企画部",
-  "製造部", "経理部", "物流部", "総務部", "人事部", "マーケティング部",
-];
+import { useDepartments } from "@/hooks/useDepartments";
 
 interface ProfileRow {
   user_id: string;
