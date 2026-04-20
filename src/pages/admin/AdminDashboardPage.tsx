@@ -73,7 +73,33 @@ const AdminDashboardPage = () => {
     return { ...counts, stagnant, total: kaizenItems.length };
   }, [kaizenItems]);
 
-  const allFilteredSelected = filteredItems.length > 0 && filteredItems.every(i => selected.has(i.id));
+  const departmentAggregation = useMemo(() => {
+    const map = new Map<string, { department: string; count: number; totalImpact: number; completed: number }>();
+    kaizenItems.forEach(item => {
+      const cur = map.get(item.department) || { department: item.department, count: 0, totalImpact: 0, completed: 0 };
+      cur.count += 1;
+      cur.totalImpact += item.impactScore;
+      if (item.executionStage === "実行済み") cur.completed += 1;
+      map.set(item.department, cur);
+    });
+    return Array.from(map.values())
+      .map(d => ({ ...d, avgImpact: d.count > 0 ? Math.round(d.totalImpact / d.count) : 0 }))
+      .sort((a, b) => b.totalImpact - a.totalImpact);
+  }, [kaizenItems]);
+
+  const categoryAggregation = useMemo(() => {
+    const map = new Map<string, { category: string; count: number; totalImpact: number }>();
+    kaizenItems.forEach(item => {
+      const cur = map.get(item.category) || { category: item.category, count: 0, totalImpact: 0 };
+      cur.count += 1;
+      cur.totalImpact += item.impactScore;
+      map.set(item.category, cur);
+    });
+    return Array.from(map.values())
+      .map(c => ({ ...c, avgImpact: c.count > 0 ? Math.round(c.totalImpact / c.count) : 0 }))
+      .sort((a, b) => b.totalImpact - a.totalImpact);
+  }, [kaizenItems]);
+
 
   const toggleAll = () => {
     if (allFilteredSelected) {
