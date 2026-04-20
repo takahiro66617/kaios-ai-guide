@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Sparkles, Save, FileText, Tag, Building2, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Paperclip, Hash } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Sparkles, FileText, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Building2, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,22 +11,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useKaios } from "@/contexts/KaiosContext";
 import { useGuestProfile } from "@/contexts/GuestProfileContext";
+import { useAuth } from "@/contexts/AuthContext";
 import UITour, { type TourStep } from "@/components/kaios/UITour";
 import SubmissionCompleteModal from "@/components/gamification/SubmissionCompleteModal";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 const KAIZEN_TOUR_STEPS: TourStep[] = [
-  { selector: '[data-tour="person-selector"]', title: "① 提案者を選択", description: "改善案の提案者を選択します。提案者は事前に「提案者管理」ページで登録が必要です。", position: "bottom" },
+  { selector: '[data-tour="me-card"]', title: "① 投稿者は自分", description: "ログイン中のあなた本人として投稿されます。他の人として投稿することはできません。", position: "bottom" },
   { selector: '[data-tour="step1-form"]', title: "② 必須項目を入力", description: "問題の内容・発生場所・影響・頻度・原因仮説・改善案の方向・期待効果の7項目を入力します。", position: "bottom" },
   { selector: '[data-tour="generate-button"]', title: "③ AIドラフトを生成", description: "入力内容をもとにAIが構造化された改善シートを自動生成します。その後、差分だけ修正して確定します。", position: "top" },
-  { selector: '[data-tour="recent-items"]', title: "④ 最近の登録", description: "直近に登録した改善案が表示されます。登録後はインパクトの見える化にも反映されます。", position: "top" },
+  { selector: '[data-tour="recent-items"]', title: "④ 最近の登録", description: "直近に登録した改善案が表示されます。", position: "top" },
 ];
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -38,21 +35,14 @@ interface Step1Data {
   hypothesis: string;
   direction: string;
   expectedEffect: string;
-  // optional
   relatedDepartments: string;
   numericalEvidence: string;
 }
 
 const INITIAL_STEP1: Step1Data = {
-  problem: "",
-  occurrencePlace: "",
-  impact: "",
-  frequency: "",
-  hypothesis: "",
-  direction: "",
-  expectedEffect: "",
-  relatedDepartments: "",
-  numericalEvidence: "",
+  problem: "", occurrencePlace: "", impact: "", frequency: "",
+  hypothesis: "", direction: "", expectedEffect: "",
+  relatedDepartments: "", numericalEvidence: "",
 };
 
 const FREQUENCY_OPTIONS = ["毎日", "週に数回", "週1回", "月に数回", "月1回以下", "不定期"];
@@ -70,18 +60,18 @@ const KaizenInputPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiDraft, setAiDraft] = useState<any | null>(null);
   const [editedDraft, setEditedDraft] = useState<any | null>(null);
-  const [selectedPersonId, setSelectedPersonId] = useState("");
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionData, setCompletionData] = useState<{ impactScore: number; xpGained: number; oldLevel: number; newLevel: number; completedMissions: { title: string; icon: string; xpReward: number }[] }>({ impactScore: 0, xpGained: 0, oldLevel: 1, newLevel: 1, completedMissions: [] });
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people, getPersonById, evalAxes, calculateImpactScore } = useKaios();
+  const { addKaizenItem, kaizenItems, people } = useKaios();
   const { addXp, incrementSubmissions, checkAndCompleteMissions, profile } = useGuestProfile();
+  const { user, profile: authProfile } = useAuth();
 
-  useEffect(() => {
-    if (people.length > 0 && !selectedPersonId) {
-      setSelectedPersonId(people[0].id);
-    }
-  }, [people, selectedPersonId]);
+  // ログイン本人の people 行を解決
+  const mePerson = useMemo(
+    () => (user ? people.find(p => p.userId === user.id) || null : null),
+    [user, people]
+  );
 
   const isStep1Valid = () => {
     const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect } = step1Data;
@@ -89,8 +79,8 @@ const KaizenInputPage = () => {
   };
 
   const handleGenerateDraft = async () => {
+    if (!mePerson) { toast.error("あなたの提案者プロフィールが未登録です。管理者に依頼してください。"); return; }
     if (!isStep1Valid()) { toast.error("必須項目をすべて入力してください"); return; }
-    if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
     setIsProcessing(true);
     setStep(2);
     try {
@@ -129,8 +119,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
   const handleRegister = async () => {
     if (!editedDraft) return;
-    if (!selectedPersonId) { toast.error("提案者を選択してください"); return; }
-
+    if (!mePerson) { toast.error("あなたの提案者プロフィールが未登録です。"); return; }
     const relatedDepts = editedDraft.related_departments || [];
 
     const savedItem = await addKaizenItem({
@@ -143,7 +132,8 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       category: editedDraft.category,
       reproducibility: editedDraft.reproducibility || "中",
       tags: editedDraft.tags || [],
-      authorId: selectedPersonId,
+      authorId: mePerson.id,
+      authorNameSnapshot: mePerson.name,
       adoptedBy: relatedDepts,
       occurrencePlace: step1Data.occurrencePlace,
       frequency: step1Data.frequency,
@@ -152,7 +142,6 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
 
     if (!savedItem) return;
 
-    // Gamification: add XP, increment submissions, check missions
     await incrementSubmissions();
     const baseXp = 30;
     const bonusXp = savedItem.impactScore >= 80 ? 50 : savedItem.impactScore >= 60 ? 20 : 0;
@@ -166,27 +155,19 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       hasMultiDept: relatedDepts.length > 0,
     });
 
-    // Award mission XP
     let missionXp = 0;
-    for (const m of completedMissions) {
-      missionXp += m.xpReward;
-    }
+    for (const m of completedMissions) missionXp += m.xpReward;
     if (missionXp > 0) {
       const result = await addXp(missionXp);
       setCompletionData({
-        impactScore: savedItem.impactScore,
-        xpGained: totalXp + missionXp,
-        oldLevel,
-        newLevel: result.newLevel,
+        impactScore: savedItem.impactScore, xpGained: totalXp + missionXp,
+        oldLevel, newLevel: result.newLevel,
         completedMissions: completedMissions.map(m => ({ title: m.title, icon: m.icon, xpReward: m.xpReward })),
       });
     } else {
       setCompletionData({
-        impactScore: savedItem.impactScore,
-        xpGained: totalXp,
-        oldLevel,
-        newLevel,
-        completedMissions: [],
+        impactScore: savedItem.impactScore, xpGained: totalXp,
+        oldLevel, newLevel, completedMissions: [],
       });
     }
 
@@ -201,7 +182,9 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
     setEditedDraft(null);
   };
 
-  const recentItems = kaizenItems.filter(k => k.status !== "新規").slice(0, 3);
+  const recentItems = kaizenItems
+    .filter(k => k.status !== "新規" && k.authorId === mePerson?.id)
+    .slice(0, 3);
 
   return (
     <main className="flex-1 bg-kaios-surface overflow-auto">
@@ -233,35 +216,28 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
           ))}
         </div>
 
-        {/* Person Selector - always visible */}
-        <Card data-tour="person-selector">
+        {/* Me card - 投稿者は本人固定 */}
+        <Card data-tour="me-card">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">提案者:</span>
-              <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
-                <SelectTrigger className="w-[260px]">
-                  <SelectValue placeholder="提案者を選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {people.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}（{p.department}）
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {(() => {
-                const person = getPersonById(selectedPersonId);
-                return person ? (
-                  <span className="text-xs text-muted-foreground">{person.role} ・ 入社{person.yearsAtCompany}年目</span>
-                ) : null;
-              })()}
+              <span className="text-sm font-medium text-foreground">投稿者:</span>
+              {mePerson ? (
+                <>
+                  <span className="text-sm font-bold">{mePerson.name}</span>
+                  <Badge variant="outline" className="text-xs">{mePerson.department}</Badge>
+                  {mePerson.role && <span className="text-xs text-muted-foreground">{mePerson.role}・入社{mePerson.yearsAtCompany}年目</span>}
+                </>
+              ) : (
+                <span className="text-sm text-destructive">
+                  あなたの提案者プロフィールが未登録です。管理者に依頼してください（ログイン名: {authProfile?.username}）。
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* ===== STEP 1: 最小十分入力 ===== */}
+        {/* ===== STEP 1 ===== */}
         {step === 1 && (
           <Card data-tour="step1-form">
             <CardHeader>
@@ -272,39 +248,28 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
               <p className="text-xs text-muted-foreground">AIが意味を外さず構造化できるレベルの情報を最短で入力してください。</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Required */}
               <p className="text-xs font-bold text-foreground flex items-center gap-1"><span className="text-destructive">*</span> 必須項目</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5 md:col-span-2">
                   <Label className="flex items-center gap-1.5 text-sm"><AlertTriangle className="w-3.5 h-3.5 text-destructive" />問題の内容 <span className="text-destructive">*</span></Label>
-                  <Textarea
-                    placeholder="例: 営業資料の最新版がどこにあるか分からず、古い資料で提案してしまうことがある"
+                  <Textarea placeholder="例: 営業資料の最新版がどこにあるか分からず、古い資料で提案してしまうことがある"
                     value={step1Data.problem}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, problem: e.target.value }))}
-                    rows={3}
-                    className="resize-none"
-                  />
+                    rows={3} className="resize-none" />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><MapPin className="w-3.5 h-3.5 text-primary" />発生場所 <span className="text-destructive">*</span></Label>
-                  <Input
-                    placeholder="例: 営業部 / 第2製造ライン / 経理課"
+                  <Input placeholder="例: 営業部 / 第2製造ライン / 経理課"
                     value={step1Data.occurrencePlace}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, occurrencePlace: e.target.value }))}
-                  />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, occurrencePlace: e.target.value }))} />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><BarChart2 className="w-3.5 h-3.5 text-primary" />影響 <span className="text-destructive">*</span></Label>
-                  <Input
-                    placeholder="例: 提案の失注率が上がる / 手戻りが発生"
+                  <Input placeholder="例: 提案の失注率が上がる / 手戻りが発生"
                     value={step1Data.impact}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, impact: e.target.value }))}
-                  />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, impact: e.target.value }))} />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><RefreshCw className="w-3.5 h-3.5 text-primary" />頻度 <span className="text-destructive">*</span></Label>
                   <Select value={step1Data.frequency} onValueChange={(v) => setStep1Data(prev => ({ ...prev, frequency: v }))}>
@@ -314,60 +279,46 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><Lightbulb className="w-3.5 h-3.5 text-primary" />原因仮説 <span className="text-destructive">*</span></Label>
-                  <Input
-                    placeholder="例: 資料の保管場所が統一されていない"
+                  <Input placeholder="例: 資料の保管場所が統一されていない"
                     value={step1Data.hypothesis}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, hypothesis: e.target.value }))}
-                  />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, hypothesis: e.target.value }))} />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><TrendingUp className="w-3.5 h-3.5 text-primary" />改善案の方向 <span className="text-destructive">*</span></Label>
-                  <Input
-                    placeholder="例: 社内Wikiに全資料を一元管理する"
+                  <Input placeholder="例: 社内Wikiに全資料を一元管理する"
                     value={step1Data.direction}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))}
-                  />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))} />
                 </div>
-
                 <div className="space-y-1.5 md:col-span-2">
                   <Label className="flex items-center gap-1.5 text-sm"><Sparkles className="w-3.5 h-3.5 text-primary" />期待効果 <span className="text-destructive">*</span></Label>
-                  <Input
-                    placeholder="例: 資料検索時間50%削減、提案精度向上"
+                  <Input placeholder="例: 資料検索時間50%削減、提案精度向上"
                     value={step1Data.expectedEffect}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, expectedEffect: e.target.value }))}
-                  />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, expectedEffect: e.target.value }))} />
                 </div>
               </div>
 
-              {/* Optional */}
               <div className="border-t border-border pt-4 mt-4">
                 <p className="text-xs font-bold text-muted-foreground mb-3">任意項目（入力するとAIの精度が向上します）</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="flex items-center gap-1.5 text-sm"><Building2 className="w-3.5 h-3.5 text-muted-foreground" />関係部署</Label>
-                    <Input
-                      placeholder="例: マーケティング部, カスタマーサポート部"
+                    <Input placeholder="例: マーケティング部, カスタマーサポート部"
                       value={step1Data.relatedDepartments}
-                      onChange={(e) => setStep1Data(prev => ({ ...prev, relatedDepartments: e.target.value }))}
-                    />
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, relatedDepartments: e.target.value }))} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="flex items-center gap-1.5 text-sm"><Hash className="w-3.5 h-3.5 text-muted-foreground" />数値根拠</Label>
-                    <Input
-                      placeholder="例: 月20件の手戻り、年間100時間のロス"
+                    <Input placeholder="例: 月20件の手戻り、年間100時間のロス"
                       value={step1Data.numericalEvidence}
-                      onChange={(e) => setStep1Data(prev => ({ ...prev, numericalEvidence: e.target.value }))}
-                    />
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, numericalEvidence: e.target.value }))} />
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end pt-2" data-tour="generate-button">
-                <Button onClick={handleGenerateDraft} disabled={!isStep1Valid() || isProcessing} className="gap-2">
+                <Button onClick={handleGenerateDraft} disabled={!isStep1Valid() || isProcessing || !mePerson} className="gap-2">
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   AIドラフトを生成する
                   <ChevronRight className="w-4 h-4" />
@@ -377,213 +328,91 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
           </Card>
         )}
 
-        {/* ===== STEP 2: AI Processing ===== */}
+        {/* Steps 2-4: ローディング/編集/完了 */}
         {step === 2 && isProcessing && (
-          <div className="text-center py-16">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-            <p className="text-base font-medium text-foreground mb-1">AIが改善シートのドラフトを生成中...</p>
-            <p className="text-sm text-muted-foreground">入力された情報をもとに、構造化された改善案を作成しています</p>
-          </div>
+          <Card><CardContent className="py-12 text-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+            <p className="text-sm text-muted-foreground">AIが構造化ドラフトを生成しています…</p>
+          </CardContent></Card>
         )}
 
-        {/* ===== STEP 2→3: AI Draft Review & Edit ===== */}
-        {(step === 2 || step === 3) && !isProcessing && editedDraft && (
-          <Card className="border-primary/20 shadow-lg">
+        {(step === 2 || step === 3) && editedDraft && !isProcessing && (
+          <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  {step === 2 ? (
-                    <><CheckCircle2 className="w-5 h-5 text-kaios-success" />Step2: AIドラフト生成完了</>
-                  ) : (
-                    <><Edit3 className="w-5 h-5 text-primary" />Step3: 差分修正</>
-                  )}
-                </CardTitle>
-                {/* Impact preview */}
-                <div className="text-center shrink-0 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2">
-                  <p className="text-xs text-muted-foreground">予測インパクト</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {calculateImpactScore({
-                      id: "preview", title: editedDraft.title, problem: editedDraft.problem, cause: editedDraft.cause,
-                      solution: editedDraft.solution, effect: editedDraft.effect, department: editedDraft.department,
-                      category: editedDraft.category, reproducibility: editedDraft.reproducibility || "中",
-                      tags: editedDraft.tags || [], status: "構造化済み", authorId: selectedPersonId,
-                      createdAt: new Date().toISOString().slice(0, 10),
-                      adoptedBy: editedDraft.related_departments || [],
-                      impactScore: 0, occurrencePlace: step1Data.occurrencePlace,
-                      frequency: step1Data.frequency, numericalEvidence: step1Data.numericalEvidence,
-                      executionStage: "提案中", stageChangedAt: null, stageChangedBy: null, adminMemo: "",
-                    })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">/ 100</p>
-                </div>
-              </div>
-              {step === 2 && (
-                <p className="text-xs text-muted-foreground mt-1">AIが生成したドラフトです。内容を確認し、修正が必要な場合は「差分修正に進む」を押してください。</p>
-              )}
-              {step === 3 && (
-                <p className="text-xs text-muted-foreground mt-1">各フィールドを直接編集できます。ズレている箇所だけ修正してください。</p>
-              )}
+              <CardTitle className="text-base flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-primary" />
+                Step{step}: AIドラフトを確認・修正
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Eval settings context */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
-                現在の評価方針: {evalAxes.filter(a => a.isActive).map(a => `${a.name} ${a.weight}%`).join(" / ") || "未設定"}
+            <CardContent className="space-y-3">
+              <EditableField label="タイトル" value={editedDraft.title || ""} onChange={(v) => handleEditField("title", v)} />
+              <EditableField label="問題" value={editedDraft.problem || ""} onChange={(v) => handleEditField("problem", v)} multiline />
+              <EditableField label="原因" value={editedDraft.cause || ""} onChange={(v) => handleEditField("cause", v)} multiline />
+              <EditableField label="解決策" value={editedDraft.solution || ""} onChange={(v) => handleEditField("solution", v)} multiline />
+              <EditableField label="効果" value={editedDraft.effect || ""} onChange={(v) => handleEditField("effect", v)} multiline />
+              <div className="grid grid-cols-2 gap-3">
+                <EditableField label="部門" value={editedDraft.department || ""} onChange={(v) => handleEditField("department", v)} />
+                <EditableField label="カテゴリ" value={editedDraft.category || ""} onChange={(v) => handleEditField("category", v)} />
               </div>
-
-              {/* Editable fields */}
-              <EditableField label="タイトル" value={editedDraft.title} onChange={(v) => handleEditField("title", v)} readOnly={step === 2} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <EditableField label="🔴 課題" value={editedDraft.problem} onChange={(v) => handleEditField("problem", v)} readOnly={step === 2} multiline />
-                <EditableField label="🔍 原因" value={editedDraft.cause} onChange={(v) => handleEditField("cause", v)} readOnly={step === 2} multiline />
-                <EditableField label="💡 解決策" value={editedDraft.solution} onChange={(v) => handleEditField("solution", v)} readOnly={step === 2} multiline />
-                <EditableField label="📈 効果" value={editedDraft.effect} onChange={(v) => handleEditField("effect", v)} readOnly={step === 2} multiline />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <EditableField label="部門" value={editedDraft.department} onChange={(v) => handleEditField("department", v)} readOnly={step === 2} />
-                <EditableField label="カテゴリ" value={editedDraft.category} onChange={(v) => handleEditField("category", v)} readOnly={step === 2} />
-                <EditableField label="再現性" value={editedDraft.reproducibility} onChange={(v) => handleEditField("reproducibility", v)} readOnly={step === 2} />
-              </div>
-
-              {/* Related departments */}
-              {editedDraft.related_departments && editedDraft.related_departments.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">🏢 AIが検出した関連部署</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {editedDraft.related_departments.map((dept: string, i: number) => (
-                      <Badge key={i} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary">
-                        <Building2 className="w-3 h-3 mr-1" />{dept}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tags */}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">タグ</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(editedDraft.tags || []).map((tag: string, i: number) => (
-                    <Badge key={i} variant="secondary" className="text-xs"><Tag className="w-3 h-3 mr-1" />{tag}</Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 pt-4 border-t border-border">
-                {step === 2 && (
-                  <>
-                    <Button size="sm" className="gap-1.5" onClick={handleRegister}>
-                      <FileText className="w-4 h-4" />このまま登録する
-                    </Button>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setStep(3)}>
-                      <Edit3 className="w-4 h-4" />差分修正に進む
-                    </Button>
-                  </>
-                )}
-                {step === 3 && (
-                  <>
-                    <Button size="sm" className="gap-1.5" onClick={handleRegister}>
-                      <FileText className="w-4 h-4" />確定してナレッジ登録
-                    </Button>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setStep(2)}>
-                      ドラフトに戻す
-                    </Button>
-                  </>
-                )}
-                <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setStep(1)}>
-                  <RefreshCw className="w-4 h-4" />Step1からやり直す
+              <div className="flex justify-between gap-2 pt-3">
+                <Button variant="outline" onClick={handleReset}>最初からやり直す</Button>
+                <Button onClick={handleRegister} className="gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  この内容で登録する
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* ===== STEP 4: Complete ===== */}
         {step === 4 && (
-          <Card className="border-kaios-success/30 bg-kaios-success/5">
-            <CardContent className="p-8 text-center space-y-4">
-              <CheckCircle2 className="w-16 h-16 text-kaios-success mx-auto" />
-              <h2 className="text-xl font-bold text-foreground">ナレッジ登録完了</h2>
-              <p className="text-sm text-muted-foreground">
-                改善案がナレッジベースに蓄積されました。+{completionData.xpGained}XP獲得！
-              </p>
-              <div className="flex items-center justify-center gap-3 pt-4">
-                <Button onClick={handleReset} className="gap-1.5">
-                  <RefreshCw className="w-4 h-4" />もう1件提出する
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/")} className="gap-1.5">
-                  <BarChart2 className="w-4 h-4" />ダッシュボードへ
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="py-10 text-center space-y-3">
+            <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
+            <p className="text-base font-medium">登録完了！</p>
+            <Button variant="outline" onClick={handleReset}>もう1件入力する</Button>
+          </CardContent></Card>
         )}
 
-        {/* Submission Complete Modal */}
-        <SubmissionCompleteModal
-          open={showCompleteModal}
-          onOpenChange={setShowCompleteModal}
-          impactScore={completionData.impactScore}
-          xpGained={completionData.xpGained}
-          oldLevel={completionData.oldLevel}
-          newLevel={completionData.newLevel}
-          completedMissions={completionData.completedMissions}
-          onGoToDashboard={() => { setShowCompleteModal(false); navigate("/"); }}
-          onSubmitAnother={() => { setShowCompleteModal(false); handleReset(); }}
-        />
-
-        {/* Recent items - visible on step 1 and 4 */}
-        {(step === 1 || step === 4) && recentItems.length > 0 && (
-          <div className="space-y-3" data-tour="recent-items">
-            <h3 className="text-sm font-semibold text-muted-foreground">最近登録された改善案</h3>
-            {recentItems.map((item) => {
-              const author = getPersonById(item.authorId);
-              return (
-                <Card key={item.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                          <span>{item.department}</span>
-                          {author && <span className="text-primary">{author.name}</span>}
-                          <span>{item.createdAt}</span>
-                          {item.adoptedBy.length > 0 && (
-                            <span className="text-kaios-success">{item.adoptedBy.length}部門関連</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-primary">{item.impactScore}pt</span>
-                        <Badge variant="secondary" className="text-xs">{item.status}</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+        {/* Recent submissions by me */}
+        {recentItems.length > 0 && (
+          <Card data-tour="recent-items">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />あなたの最近の登録</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {recentItems.map(item => (
+                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 cursor-pointer"
+                  onClick={() => navigate("/similar-cases")}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.department} ・ {item.createdAt}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs ml-2">影響度 {item.impactScore}</Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         )}
       </div>
+
+      <SubmissionCompleteModal
+        open={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        impactScore={completionData.impactScore}
+        xpGained={completionData.xpGained}
+        oldLevel={completionData.oldLevel}
+        newLevel={completionData.newLevel}
+        completedMissions={completionData.completedMissions}
+      />
     </main>
   );
 };
 
-// Editable field component
-const EditableField = ({ label, value, onChange, readOnly = false, multiline = false }: {
-  label: string; value: string; onChange: (v: string) => void; readOnly?: boolean; multiline?: boolean;
-}) => (
-  <div className="rounded-lg border border-border bg-muted/30 p-3">
-    <p className="text-xs font-bold text-muted-foreground mb-1.5">{label}</p>
-    {readOnly ? (
-      <p className="text-sm text-foreground">{value}</p>
-    ) : multiline ? (
-      <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="resize-none text-sm" />
+const EditableField = ({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean }) => (
+  <div className="space-y-1">
+    <Label className="text-xs text-muted-foreground">{label}</Label>
+    {multiline ? (
+      <Textarea value={value} onChange={e => onChange(e.target.value)} rows={3} className="resize-none" />
     ) : (
-      <Input value={value} onChange={(e) => onChange(e.target.value)} className="text-sm" />
+      <Input value={value} onChange={e => onChange(e.target.value)} />
     )}
   </div>
 );
