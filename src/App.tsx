@@ -13,7 +13,7 @@ import EvaluationSettings from "@/components/kaios/EvaluationSettings";
 import KaizenInputPage from "@/pages/KaizenInputPage";
 import SimilarCasesPage from "@/pages/SimilarCasesPage";
 import ImpactPage from "@/pages/ImpactPage";
-import SettingsPage from "@/pages/SettingsPage";
+
 import PeopleManagementPage from "@/pages/PeopleManagementPage";
 import DebugReportsPage from "@/pages/DebugReportsPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -50,7 +50,7 @@ const App = () => (
                     <Route path="/similar-cases" element={<SimilarCasesPage />} />
                     <Route path="/impact" element={<ImpactPage />} />
                     <Route path="/missions" element={<MissionsPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
+                    
                     <Route path="/debug-reports" element={<DebugReportsPage />} />
                     <Route
                       path="/eval-settings"
