@@ -31,6 +31,23 @@ export interface KaizenItem {
   occurrencePlace: string;
   frequency: string;
   numericalEvidence: string;
+  executionStage: "提案中" | "実行予定" | "実行済み";
+  stageChangedAt: string | null;
+  stageChangedBy: string | null;
+  adminMemo: string;
+}
+
+export type ExecutionStage = "提案中" | "実行予定" | "実行済み";
+export const EXECUTION_STAGES: ExecutionStage[] = ["提案中", "実行予定", "実行済み"];
+
+export interface StageHistoryEntry {
+  id: string;
+  kaizenItemId: string;
+  fromStage: string | null;
+  toStage: string;
+  changedBy: string;
+  reason: string | null;
+  createdAt: string;
 }
 
 export interface EvalAxis {
@@ -76,6 +93,10 @@ const mapRowToItem = (row: any): KaizenItem => ({
   occurrencePlace: row.occurrence_place || "",
   frequency: row.frequency || "",
   numericalEvidence: row.numerical_evidence || "",
+  executionStage: (row.execution_stage as KaizenItem["executionStage"]) || "提案中",
+  stageChangedAt: row.stage_changed_at || null,
+  stageChangedBy: row.stage_changed_by || null,
+  adminMemo: row.admin_memo || "",
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
@@ -102,8 +123,11 @@ interface KaiosContextType {
   updateEvalAxis: (id: string, updates: Partial<EvalAxis>) => Promise<void>;
   deleteEvalAxis: (id: string) => Promise<void>;
   updateAxisWeight: (id: string, weight: number) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo"> & { adoptedBy?: string[] }) => Promise<KaizenItem | null>;
   updateKaizenStatus: (id: string, status: KaizenItem["status"]) => void;
+  updateExecutionStage: (id: string, stage: ExecutionStage, changedBy?: string, reason?: string) => Promise<void>;
+  updateAdminMemo: (id: string, memo: string) => Promise<void>;
+  getStageHistory: (kaizenItemId: string) => Promise<StageHistoryEntry[]>;
   getPersonById: (id: string) => Person | undefined;
   getKaizenByPerson: (personId: string) => KaizenItem[];
   getKaizenByDepartment: (dept: string) => KaizenItem[];
