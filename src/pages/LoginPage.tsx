@@ -42,10 +42,29 @@ const LoginPage = () => {
     setPassword(p);
   };
 
+  const isDemoAccount = (u: string, p: string) =>
+    [...demoCredentials.member, ...demoCredentials.admin].some(
+      (c) => c.username === u.trim().toLowerCase() && c.password === p,
+    );
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const res = await signIn(username, password);
+
+    let res = await signIn(username, password);
+
+    // If a demo account fails (not yet seeded / password drift), seed and retry once.
+    if (!res.ok && isDemoAccount(username, password)) {
+      const { error: seedErr } = await supabase.functions.invoke("seed-demo-accounts", { body: {} });
+      if (seedErr) {
+        setSubmitting(false);
+        toast.error("デモアカウントの初期化に失敗しました");
+        return;
+      }
+      toast.message("デモアカウントを初期化しました。再ログインします…");
+      res = await signIn(username, password);
+    }
+
     if (!res.ok) {
       setSubmitting(false);
       toast.error(res.error || "ログインに失敗しました");
