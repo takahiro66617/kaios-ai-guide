@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DepartmentMasterModal from "@/components/admin/DepartmentMasterModal";
+import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
   "提案中": "bg-blue-500/10 text-blue-700 border-blue-200",
@@ -239,6 +240,7 @@ const ReviewView = ({
                       <span>インパクト {item.impactScore}</span><span>•</span>
                       <span>{daysSince(item.createdAt)}日前</span>
                     </div>
+                    <AxisScoreTags item={item} className="mt-2" />
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
                     <Button size="sm" onClick={() => onApprove(item.id).then(() => toast.success("承認しました"))}>
@@ -601,6 +603,7 @@ const SectionGroup = ({
                       <span>インパクト {item.impactScore}</span>
                       {item.adoptedBy.length > 0 && (<><span>•</span><span>採用 {item.adoptedBy.length}部署</span></>)}
                     </div>
+                    <AxisScoreTags item={item} className="mt-2" />
                   </div>
                   <Badge variant="outline" className={STAGE_COLORS[item.executionStage]}>{item.executionStage}</Badge>
                 </div>

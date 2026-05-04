@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useGuestProfile, LEVEL_TITLES } from "@/contexts/GuestProfileContext";
 import { useKaios } from "@/contexts/KaiosContext";
 import { useNavigate } from "react-router-dom";
+import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
 
 const DashboardPage = () => {
   const { profile, missions, missionProgress, levelTitle, levelProgress, xpToNextLevel, xpInCurrentLevel, xpNeededForCurrentLevel, getLikeInfo } = useGuestProfile();
@@ -229,6 +230,7 @@ const DashboardPage = () => {
                           <span>{item.createdAt}</span>
                           <Badge variant="secondary" className="text-xs">{item.status}</Badge>
                         </div>
+                        <AxisScoreTags item={item} className="mt-1.5" />
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         {likeInfo.count > 0 && (

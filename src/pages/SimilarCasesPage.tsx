@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
+import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
 import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
@@ -222,6 +223,7 @@ const SimilarCasesPage = () => {
                             </button>
                           )}
                         </div>
+                        <AxisScoreTags item={item} className="mt-2" />
                       </div>
                       <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={() => openDetail(item)}>
                         詳細を見る<ArrowRight className="w-3 h-3" />
@@ -304,6 +306,7 @@ const SimilarCasesPage = () => {
                           )}
                           {item.adoptedBy.length > 0 && <span className="text-kaios-success">{item.adoptedBy.length}部門で採用</span>}
                         </div>
+                        <AxisScoreTags item={item} className="mt-2" />
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button
