@@ -35,7 +35,7 @@ interface Props {
 
 export const AxisScoreTags = ({ item, className = "" }: Props) => {
   const { evalAxes } = useKaios();
-  const active = evalAxes.filter(a => a.isActive && a.axisType !== "legacy");
+  const active = evalAxes.filter(a => a.isActive);
   if (active.length === 0) return null;
 
   const total = active.reduce((s, a) => s + a.weight, 0);
