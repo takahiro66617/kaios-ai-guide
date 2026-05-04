@@ -56,6 +56,25 @@ export interface StageHistoryEntry {
   createdAt: string;
 }
 
+const FIXED_AXIS_KEYS = new Set(["essence", "profitability", "feasibility"]);
+const STRATEGIC_AXIS_KEYS = new Set([
+  "strategy_cost", "strategy_productivity", "strategy_quality",
+  "strategy_sales", "strategy_risk", "strategy_speed", "strategy_dx",
+]);
+const CULTURAL_AXIS_KEYS = new Set([
+  "culture_safety", "culture_cross", "culture_ownership",
+  "culture_learning", "culture_customer", "culture_diversity", "culture_sustainability",
+]);
+
+export type AxisType = "fixed" | "strategic" | "cultural" | "legacy";
+
+export function getAxisType(key: string): AxisType {
+  if (FIXED_AXIS_KEYS.has(key))    return "fixed";
+  if (STRATEGIC_AXIS_KEYS.has(key)) return "strategic";
+  if (CULTURAL_AXIS_KEYS.has(key))  return "cultural";
+  return "legacy";
+}
+
 export interface EvalAxis {
   id: string;
   name: string;
@@ -68,6 +87,8 @@ export interface EvalAxis {
   weight: number;
   sortOrder: number;
   isActive: boolean;
+  axisType: AxisType;
+  weightLocked: boolean;
 }
 
 const mapRowToPerson = (row: any): Person => ({
@@ -120,6 +141,8 @@ const mapRowToAxis = (row: any): EvalAxis => ({
   weight: row.weight ?? 50,
   sortOrder: row.sort_order ?? 0,
   isActive: row.is_active ?? true,
+  axisType: getAxisType(row.key),
+  weightLocked: FIXED_AXIS_KEYS.has(row.key),
 });
 
 interface KaiosContextType {
