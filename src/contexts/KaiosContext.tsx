@@ -38,6 +38,7 @@ export interface KaizenItem {
   stageChangedBy: string | null;
   adminMemo: string;
   authorNote: string;
+  perAxisScores: { key: string; score: number }[];
 }
 
 export type KaizenStatus = "下書き" | "申請中" | "承認済み" | "差戻し";
