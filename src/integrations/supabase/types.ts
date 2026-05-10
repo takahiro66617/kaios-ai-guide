@@ -304,6 +304,7 @@ export type Database = {
           impact_score: number
           numerical_evidence: string
           occurrence_place: string
+          per_axis_scores: Json
           problem: string
           reproducibility: string
           solution: string
@@ -331,6 +332,7 @@ export type Database = {
           impact_score?: number
           numerical_evidence?: string
           occurrence_place?: string
+          per_axis_scores?: Json
           problem: string
           reproducibility?: string
           solution: string
@@ -358,6 +360,7 @@ export type Database = {
           impact_score?: number
           numerical_evidence?: string
           occurrence_place?: string
+          per_axis_scores?: Json
           problem?: string
           reproducibility?: string
           solution?: string

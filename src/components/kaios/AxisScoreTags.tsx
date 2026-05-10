@@ -7,25 +7,22 @@ const TYPE_COLORS = {
   legacy:   { lo: "bg-gray-50 border-gray-200 text-gray-400",   hi: "bg-gray-100 border-gray-300 text-gray-500" },
 };
 
+/**
+ * 軸ごとの表示スコア（0〜100に正規化）。
+ * 1) AIが評価方針に沿って付けた per_axis_scores が保存されていればそれを使う（0-100スケールに正規化）
+ * 2) 無い場合のみ、総合点をウェイト比で按分するフォールバック
+ */
 function calcAxisScore(item: KaizenItem, axis: EvalAxis, totalWeight: number): number {
-  let s = Math.round(item.impactScore * (axis.weight / totalWeight));
-  switch (axis.key) {
-    case "essence":
-      if ((item.problem?.length ?? 0) + (item.cause?.length ?? 0) > 200) s += 8;
-      break;
-    case "profitability":
-      if ((item.numericalEvidence?.length ?? 0) > 10) s += 8;
-      if ((item.effect?.length ?? 0) > 50) s += 4;
-      break;
-    case "feasibility":
-      if ((item.solution?.length ?? 0) > 100) s += 8;
-      if (item.executionStage === "実行済み") s += 12;
-      else if (item.executionStage === "実行予定") s += 5;
-      break;
-    default:
-      if (axis.axisType === "cultural" && item.adoptedBy?.length > 0) s += 8;
+  const saved = item.perAxisScores?.find(s => s.key === axis.key);
+  if (saved && typeof saved.score === "number") {
+    // 保存値は「0〜該当軸のウェイト点」なので、0〜100スケールに直す
+    const weight = axis.weight || 1;
+    const normalized = Math.round((saved.score / weight) * 100);
+    return Math.max(0, Math.min(100, normalized));
   }
-  return Math.max(0, Math.min(100, s));
+  // フォールバック: 総合点 × ウェイト比
+  const fallback = Math.round(item.impactScore * (axis.weight / totalWeight) * (100 / Math.max(1, axis.weight)));
+  return Math.max(0, Math.min(100, fallback));
 }
 
 interface Props {
@@ -41,15 +38,20 @@ export const AxisScoreTags = ({ item, className = "" }: Props) => {
   const total = active.reduce((s, a) => s + a.weight, 0);
   if (total === 0) return null;
 
+  const hasSaved = (item.perAxisScores?.length ?? 0) > 0;
+
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {active.map(axis => {
         const score = calcAxisScore(item, axis, total);
         const { lo, hi } = TYPE_COLORS[axis.axisType] ?? TYPE_COLORS.legacy;
+        const tip = hasSaved
+          ? `${axis.description}\n（AIが評価方針に沿って採点）`
+          : `${axis.description}\n（参考値: 軸別採点が未保存のため、総合点から按分）`;
         return (
           <span
             key={axis.key}
-            title={axis.description}
+            title={tip}
             className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium border ${score >= 70 ? hi : lo}`}
           >
             {axis.name}<span className="font-bold ml-0.5">{score}</span>

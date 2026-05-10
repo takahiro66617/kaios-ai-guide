@@ -141,6 +141,7 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       status: asDraft ? "下書き" : "申請中",
       // AI が評価方針に基づいて算出したスコアをそのまま使う
       impactScore: typeof editedDraft.impact_score === "number" ? editedDraft.impact_score : undefined,
+      perAxisScores: Array.isArray(editedDraft.per_axis_scores) ? editedDraft.per_axis_scores : [],
     });
 
     if (!savedItem) return;
