@@ -19,7 +19,12 @@ interface CreateUserBody {
   department: string;
   role_title: string;
   years_at_company: number;
-  is_admin: boolean;
+  // Back-compat: legacy boolean. Prefer `role` instead.
+  is_admin?: boolean;
+  // New 3-tier: 'admin' | 'manager' | 'employee' (default 'employee')
+  role?: "admin" | "manager" | "employee";
+  // For role='manager', the departments they oversee
+  managed_departments?: string[];
   // optional: link to an existing people row instead of creating a new one
   link_person_id?: string;
 }
