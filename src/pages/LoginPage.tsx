@@ -23,7 +23,7 @@ const demoCredentials: Record<Mode, { username: string; password: string; label:
 };
 
 const LoginPage = () => {
-  const { user, isAdmin, signIn, signOut, loading } = useAuth();
+  const { user, isAdmin, isManager, signIn, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || "/";
