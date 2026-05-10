@@ -13,9 +13,14 @@ const baseMenu = [
   { title: "インパクト分析", subtitle: "組織への貢献度を可視化", icon: BarChart3, path: "/impact" },
 ];
 
-const adminMenu = [
-  { title: "管理者ダッシュボード", subtitle: "提案一覧・AI再計算・実行段階", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { title: "評価方針設定", subtitle: "評価軸・ウェイトの調整", icon: SlidersHorizontal, path: "/eval-settings" },
+// Items visible to BOTH managers and admins
+const managerSharedMenu = [
+  { title: "管理者ダッシュボード", subtitle: "提案一覧・実行段階の管理", icon: LayoutDashboard, path: "/admin/dashboard" },
+  { title: "評価方針設定", subtitle: "評価軸・ウェイトの確認", icon: SlidersHorizontal, path: "/eval-settings" },
+];
+
+// Items visible ONLY to admins
+const adminOnlyMenu = [
   { title: "提案者管理", subtitle: "メンバー・ID/PWの発行", icon: Users, path: "/people" },
   { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
 ];
@@ -28,7 +33,9 @@ interface KaiosSidebarProps {
 const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
   const location = useLocation();
   const { profile: gprofile, levelTitle, levelProgress } = useGuestProfile();
-  const { profile: authProfile, isAdmin, signOut } = useAuth();
+  const { profile: authProfile, isAdmin, isManager, signOut } = useAuth();
+  const managerVisibleItems = isAdmin ? [...managerSharedMenu, ...adminOnlyMenu] : isManager ? managerSharedMenu : [];
+  const sectionLabel = isAdmin ? "管理機能" : isManager ? "マネージャー機能（閲覧）" : "";
 
   return (
     <aside className={`
@@ -62,10 +69,10 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
           );
         })}
 
-        {isAdmin && (
+        {managerVisibleItems.length > 0 && (
           <>
-            <div className="px-2 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 border-t border-border mt-2">管理機能</div>
-            {adminMenu.map((item) => {
+            <div className="px-2 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 border-t border-border mt-2">{sectionLabel}</div>
+            {managerVisibleItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link key={item.title} to={item.path} onClick={onClose}
@@ -93,6 +100,7 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
             <div className="text-sm font-medium text-foreground truncate">
               {authProfile?.display_name || "メンバー"}
               {isAdmin && <span className="ml-1 text-xs text-amber-600">[管理者]</span>}
+              {isManager && <span className="ml-1 text-xs text-emerald-600">[マネージャー]</span>}
             </div>
             <div className="text-xs text-muted-foreground">Lv.{gprofile?.level || 1} {levelTitle} ・ {gprofile?.xp || 0}XP</div>
           </div>

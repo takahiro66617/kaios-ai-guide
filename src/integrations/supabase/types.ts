@@ -399,6 +399,27 @@ export type Database = {
           },
         ]
       }
+      manager_departments: {
+        Row: {
+          created_at: string
+          department: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mission_progress: {
         Row: {
           completed_at: string | null
@@ -585,9 +606,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_manager_of_department: {
+        Args: { _department: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "member"
+      app_role: "admin" | "member" | "manager" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -715,7 +740,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "member"],
+      app_role: ["admin", "member", "manager", "employee"],
     },
   },
 } as const

@@ -15,6 +15,8 @@ type Action =
   | { action: "reset_password"; user_id: string; new_password: string }
   | { action: "set_active"; user_id: string; is_active: boolean }
   | { action: "set_admin"; user_id: string; is_admin: boolean }
+  | { action: "set_role"; user_id: string; role: "admin" | "manager" | "employee" }
+  | { action: "set_managed_departments"; user_id: string; departments: string[] }
   | { action: "delete"; user_id: string };
 
 Deno.serve(async (req) => {
@@ -84,6 +86,35 @@ Deno.serve(async (req) => {
           .delete()
           .eq("user_id", body.user_id)
           .eq("role", "admin");
+      }
+      return json({ ok: true });
+    }
+
+    if (body.action === "set_role") {
+      const newRole = body.role;
+      if (!["admin", "manager", "employee"].includes(newRole)) {
+        return json({ error: "invalid role" }, 400);
+      }
+      // Replace all roles with the single new role
+      await admin.from("user_roles").delete().eq("user_id", body.user_id);
+      const { error } = await admin
+        .from("user_roles")
+        .insert({ user_id: body.user_id, role: newRole });
+      if (error) return json({ error: error.message }, 400);
+      // If demoting away from manager, clear managed_departments
+      if (newRole !== "manager") {
+        await admin.from("manager_departments").delete().eq("user_id", body.user_id);
+      }
+      return json({ ok: true });
+    }
+
+    if (body.action === "set_managed_departments") {
+      // Replace the full set
+      await admin.from("manager_departments").delete().eq("user_id", body.user_id);
+      const rows = (body.departments || []).map((d) => ({ user_id: body.user_id, department: d }));
+      if (rows.length > 0) {
+        const { error } = await admin.from("manager_departments").insert(rows);
+        if (error) return json({ error: error.message }, 400);
       }
       return json({ ok: true });
     }

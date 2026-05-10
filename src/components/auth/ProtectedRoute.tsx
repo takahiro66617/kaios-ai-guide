@@ -6,10 +6,12 @@ import { Loader2 } from "lucide-react";
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
+  /** Allow admin OR manager (used for read-only manager pages) */
+  allowManager?: boolean;
 }
 
-export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, isAdmin, loading } = useAuth();
+export const ProtectedRoute = ({ children, requireAdmin = false, allowManager = false }: ProtectedRouteProps) => {
+  const { user, isAdmin, isManager, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -23,8 +25,9 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
     const loginPath = requireAdmin ? "/admin/login" : "/login";
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+  if (requireAdmin) {
+    const ok = isAdmin || (allowManager && isManager);
+    if (!ok) return <Navigate to="/" replace />;
   }
   return <>{children}</>;
 };

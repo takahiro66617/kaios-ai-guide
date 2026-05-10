@@ -54,7 +54,7 @@ const App = () => (
                     <Route
                       path="/eval-settings"
                       element={
-                        <ProtectedRoute requireAdmin>
+                        <ProtectedRoute requireAdmin allowManager>
                           <EvaluationSettings />
                         </ProtectedRoute>
                       }
@@ -70,7 +70,7 @@ const App = () => (
                     <Route
                       path="/admin/dashboard"
                       element={
-                        <ProtectedRoute requireAdmin>
+                        <ProtectedRoute requireAdmin allowManager>
                           <AdminDashboardPage />
                         </ProtectedRoute>
                       }

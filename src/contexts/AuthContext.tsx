@@ -4,6 +4,8 @@ import type { Session, User } from "@supabase/supabase-js";
 
 const EMAIL_DOMAIN = "kaios.local";
 
+export type AppRole = "admin" | "manager" | "employee";
+
 export interface AuthProfile {
   user_id: string;
   username: string;
@@ -15,7 +17,11 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: AuthProfile | null;
+  role: AppRole;
   isAdmin: boolean;
+  isManager: boolean;
+  isEmployee: boolean;
+  managedDepartments: string[];
   loading: boolean;
   signIn: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
@@ -34,32 +40,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<AppRole>("employee");
+  const [managedDepartments, setManagedDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadProfileAndRole = async (uid: string) => {
-    const [{ data: prof }, { data: roles }] = await Promise.all([
+    const [{ data: prof }, { data: roles }, { data: depts }] = await Promise.all([
       supabase.from("profiles").select("user_id, username, display_name, is_active").eq("user_id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("manager_departments").select("department").eq("user_id", uid),
     ]);
     setProfile(prof as AuthProfile | null);
-    setIsAdmin((roles ?? []).some((r: any) => r.role === "admin"));
+
+    const roleSet = new Set((roles ?? []).map((r: any) => r.role as string));
+    // Highest role wins: admin > manager > employee
+    const resolved: AppRole = roleSet.has("admin")
+      ? "admin"
+      : roleSet.has("manager")
+      ? "manager"
+      : "employee";
+    setRole(resolved);
+    setManagedDepartments((depts ?? []).map((d: any) => d.department));
   };
 
   useEffect(() => {
-    // 1) Subscribe FIRST
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        // defer to avoid deadlock
         setTimeout(() => loadProfileAndRole(sess.user.id), 0);
       } else {
         setProfile(null);
-        setIsAdmin(false);
+        setRole("employee");
+        setManagedDepartments([]);
       }
     });
-    // 2) Then check existing session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -81,15 +96,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
-    setIsAdmin(false);
+    setRole("employee");
+    setManagedDepartments([]);
   };
 
   const refreshProfile = async () => {
     if (user) await loadProfileAndRole(user.id);
   };
 
+  const isAdmin = role === "admin";
+  const isManager = role === "manager";
+  const isEmployee = role === "employee";
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{
+      user, session, profile, role, isAdmin, isManager, isEmployee,
+      managedDepartments, loading, signIn, signOut, refreshProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   );

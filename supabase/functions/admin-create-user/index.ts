@@ -19,7 +19,12 @@ interface CreateUserBody {
   department: string;
   role_title: string;
   years_at_company: number;
-  is_admin: boolean;
+  // Back-compat: legacy boolean. Prefer `role` instead.
+  is_admin?: boolean;
+  // New 3-tier: 'admin' | 'manager' | 'employee' (default 'employee')
+  role?: "admin" | "manager" | "employee";
+  // For role='manager', the departments they oversee
+  managed_departments?: string[];
   // optional: link to an existing people row instead of creating a new one
   link_person_id?: string;
 }
@@ -80,12 +85,21 @@ Deno.serve(async (req) => {
       .update({ display_name: body.display_name || username, username })
       .eq("user_id", newUserId);
 
-    // roles
-    const roles: { user_id: string; role: "admin" | "member" }[] = [
-      { user_id: newUserId, role: "member" },
+    // Determine target role (back-compat: is_admin=true → admin)
+    const targetRole: "admin" | "manager" | "employee" =
+      body.role ?? (body.is_admin ? "admin" : "employee");
+
+    // Insert role rows
+    const roles: { user_id: string; role: string }[] = [
+      { user_id: newUserId, role: targetRole },
     ];
-    if (body.is_admin) roles.push({ user_id: newUserId, role: "admin" });
     await admin.from("user_roles").insert(roles);
+
+    // Manager: register managed departments
+    if (targetRole === "manager" && body.managed_departments?.length) {
+      const rows = body.managed_departments.map((d) => ({ user_id: newUserId, department: d }));
+      await admin.from("manager_departments").insert(rows);
+    }
 
     let personId: string;
     if (body.link_person_id) {
