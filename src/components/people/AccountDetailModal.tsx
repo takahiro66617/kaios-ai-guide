@@ -74,7 +74,6 @@ const AccountDetailModal = ({
   const [resetting, setResetting] = useState(false);
 
   // Roles/state - reflected from props
-  const [togglingAdmin, setTogglingAdmin] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
 
   // Role / Managed depts (3-tier)
