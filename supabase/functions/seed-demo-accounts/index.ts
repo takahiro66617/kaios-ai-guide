@@ -72,11 +72,20 @@ Deno.serve(async (req) => {
         { onConflict: "user_id" },
       );
 
-      // Ensure roles: always member; admin if specified
+      // Ensure roles: always employee; admin/manager if specified
       await admin.from("user_roles").delete().eq("user_id", existingId);
-      const roles: Array<{ user_id: string; role: "admin" | "member" }> = [{ user_id: existingId, role: "member" }];
+      const roles: Array<{ user_id: string; role: "admin" | "manager" | "employee" }> = [{ user_id: existingId, role: "employee" }];
       if (acc.is_admin) roles.push({ user_id: existingId, role: "admin" });
+      if (acc.is_manager) roles.push({ user_id: existingId, role: "manager" });
       await admin.from("user_roles").insert(roles);
+
+      // Ensure manager_departments for managers
+      if (acc.is_manager) {
+        await admin.from("manager_departments").upsert(
+          { user_id: existingId, department: acc.department },
+          { onConflict: "user_id,department" },
+        );
+      }
 
       // Ensure people row linked to this auth user (members only — admin doesn't need a person)
       if (!acc.is_admin) {
@@ -90,7 +99,7 @@ Deno.serve(async (req) => {
             user_id: existingId,
             name: acc.display_name,
             department: acc.department,
-            role: "メンバー",
+            role: acc.is_manager ? "マネージャー" : "メンバー",
             avatar_initial: acc.display_name.slice(0, 1),
             years_at_company: 1,
             is_active: true,
