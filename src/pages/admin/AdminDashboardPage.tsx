@@ -36,7 +36,7 @@ const AdminDashboardPage = () => {
     kaizenItems, updateExecutionStage, updateAdminMemo, getStageHistory, getPersonById,
     approveKaizen, rejectKaizen,
   } = useKaios();
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, isManager, managedDepartments } = useAuth();
 
   const [detailItem, setDetailItem] = useState<KaizenItem | null>(null);
   const [history, setHistory] = useState<StageHistoryEntry[]>([]);
@@ -44,13 +44,20 @@ const AdminDashboardPage = () => {
   const [savingMemo, setSavingMemo] = useState(false);
   const [deptModalOpen, setDeptModalOpen] = useState(false);
 
+  // Manager-scope filtering: managers only see items in their managed departments
+  const scopedItems = useMemo(() => {
+    if (isAdmin) return kaizenItems;
+    if (isManager) return kaizenItems.filter(i => managedDepartments.includes(i.department));
+    return [];
+  }, [kaizenItems, isAdmin, isManager, managedDepartments]);
+
   const pendingItems = useMemo(
-    () => kaizenItems.filter(i => i.status === "申請中"),
-    [kaizenItems],
+    () => scopedItems.filter(i => i.status === "申請中"),
+    [scopedItems],
   );
   const approvedItems = useMemo(
-    () => kaizenItems.filter(i => i.status === "承認済み"),
-    [kaizenItems],
+    () => scopedItems.filter(i => i.status === "承認済み"),
+    [scopedItems],
   );
 
   const openDetail = async (item: KaizenItem) => {
