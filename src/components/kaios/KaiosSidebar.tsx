@@ -13,9 +13,14 @@ const baseMenu = [
   { title: "インパクト分析", subtitle: "組織への貢献度を可視化", icon: BarChart3, path: "/impact" },
 ];
 
-const adminMenu = [
-  { title: "管理者ダッシュボード", subtitle: "提案一覧・AI再計算・実行段階", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { title: "評価方針設定", subtitle: "評価軸・ウェイトの調整", icon: SlidersHorizontal, path: "/eval-settings" },
+// Items visible to BOTH managers and admins
+const managerSharedMenu = [
+  { title: "管理者ダッシュボード", subtitle: "提案一覧・実行段階の管理", icon: LayoutDashboard, path: "/admin/dashboard" },
+  { title: "評価方針設定", subtitle: "評価軸・ウェイトの確認", icon: SlidersHorizontal, path: "/eval-settings" },
+];
+
+// Items visible ONLY to admins
+const adminOnlyMenu = [
   { title: "提案者管理", subtitle: "メンバー・ID/PWの発行", icon: Users, path: "/people" },
   { title: "バグレポート", subtitle: "レポートの確認・管理", icon: Bug, path: "/debug-reports" },
 ];
