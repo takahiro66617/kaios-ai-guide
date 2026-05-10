@@ -307,15 +307,16 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const addKaizenItem = useCallback(async (
-    item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus; impactScore?: number }
+    item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote" | "perAxisScores"> & { adoptedBy?: string[]; status?: KaizenStatus; impactScore?: number; perAxisScores?: { key: string; score: number }[] }
   ): Promise<KaizenItem | null> => {
     const adoptedBy = item.adoptedBy || [];
     const initialStatus: KaizenStatus = item.status || "下書き";
+    const perAxisScores = Array.isArray(item.perAxisScores) ? item.perAxisScores : [];
     const registeredItem: KaizenItem = {
       ...item, id: `temp-${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10),
       adoptedBy, impactScore: 0, status: initialStatus,
       executionStage: "提案中", stageChangedAt: null, stageChangedBy: null,
-      adminMemo: "", authorNote: "",
+      adminMemo: "", authorNote: "", perAxisScores,
     };
     // AIが採点済みの場合はそれを優先（評価方針に基づくスコア）。なければ簡易ヒューリスティックで仮置き。
     registeredItem.impactScore = typeof item.impactScore === "number"
@@ -331,6 +332,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         adopted_by: adoptedBy, impact_score: registeredItem.impactScore,
         occurrence_place: item.occurrencePlace || "", frequency: item.frequency || "",
         numerical_evidence: item.numericalEvidence || "",
+        per_axis_scores: perAxisScores,
       } as any).select().single();
       if (error) { toast.error(error.message || "保存に失敗しました"); return null; }
       if (data) {
