@@ -397,21 +397,54 @@ const AccountDetailModal = ({
 
             {/* Role & State */}
             <TabsContent value="role" className="space-y-4 pt-4">
-              <div className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div className="rounded-lg border border-border p-4 space-y-4">
                 <div>
                   <p className="text-sm font-medium flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-primary" />
-                    管理者権限
+                    権限ロール
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    評価方針設定・提案者管理・管理者ダッシュボードへのアクセスを許可します。
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                    Admin: 全権限 / Manager: 管轄部署の閲覧・実行段階更新 / Employee: 提案・閲覧のみ
                   </p>
+                  <Select
+                    value={currentRole}
+                    onValueChange={(v: any) => handleSetRole(v)}
+                    disabled={isSelf || savingRole}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employee">一般社員（Employee）</SelectItem>
+                      <SelectItem value="manager">マネージャー（Manager）</SelectItem>
+                      <SelectItem value="admin">管理者（Admin）</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Switch
-                  checked={isAdmin}
-                  onCheckedChange={handleToggleAdmin}
-                  disabled={isSelf || togglingAdmin}
-                />
+                {currentRole === "manager" && (
+                  <div>
+                    <Label className="text-sm">管轄部署（複数選択可）</Label>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {departments.map(d => {
+                        const checked = managedDepts.includes(d.name);
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            onClick={() => setManagedDepts(prev => checked ? prev.filter(x => x !== d.name) : [...prev, d.name])}
+                            className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
+                              checked ? "bg-emerald-100 border-emerald-400 text-emerald-800" : "border-border hover:bg-muted"
+                            }`}
+                          >
+                            {d.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <Button size="sm" className="mt-3" onClick={handleSaveManagedDepts} disabled={savingDepts}>
+                      {savingDepts && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      管轄部署を保存
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div>
