@@ -399,6 +399,27 @@ export type Database = {
           },
         ]
       }
+      manager_departments: {
+        Row: {
+          created_at: string
+          department: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mission_progress: {
         Row: {
           completed_at: string | null
@@ -583,6 +604,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_manager_of_department: {
+        Args: { _department: string; _user_id: string }
         Returns: boolean
       }
     }
