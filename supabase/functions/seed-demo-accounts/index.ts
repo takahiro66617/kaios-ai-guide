@@ -16,12 +16,14 @@ interface DemoAccount {
   display_name: string;
   department: string;
   is_admin: boolean;
+  is_manager?: boolean;
 }
 
 const DEMO_ACCOUNTS: DemoAccount[] = [
   { username: "yamada", password: "kaios1234", display_name: "山田 太郎", department: "製造部", is_admin: false },
   { username: "sato",   password: "kaios1234", display_name: "佐藤 花子", department: "品質保証部", is_admin: false },
   { username: "admin",  password: "admin1234", display_name: "管理者",     department: "管理部",     is_admin: true  },
+  { username: "tanaka", password: "manager1234", display_name: "田中 課長", department: "製造部", is_admin: false, is_manager: true },
 ];
 
 function json(body: unknown, status = 200) {
