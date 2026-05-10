@@ -90,6 +90,35 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (body.action === "set_role") {
+      const newRole = body.role;
+      if (!["admin", "manager", "employee"].includes(newRole)) {
+        return json({ error: "invalid role" }, 400);
+      }
+      // Replace all roles with the single new role
+      await admin.from("user_roles").delete().eq("user_id", body.user_id);
+      const { error } = await admin
+        .from("user_roles")
+        .insert({ user_id: body.user_id, role: newRole });
+      if (error) return json({ error: error.message }, 400);
+      // If demoting away from manager, clear managed_departments
+      if (newRole !== "manager") {
+        await admin.from("manager_departments").delete().eq("user_id", body.user_id);
+      }
+      return json({ ok: true });
+    }
+
+    if (body.action === "set_managed_departments") {
+      // Replace the full set
+      await admin.from("manager_departments").delete().eq("user_id", body.user_id);
+      const rows = (body.departments || []).map((d) => ({ user_id: body.user_id, department: d }));
+      if (rows.length > 0) {
+        const { error } = await admin.from("manager_departments").insert(rows);
+        if (error) return json({ error: error.message }, 400);
+      }
+      return json({ ok: true });
+    }
+
     if (body.action === "delete") {
       const { error } = await admin.auth.admin.deleteUser(body.user_id);
       if (error) return json({ error: error.message }, 400);
