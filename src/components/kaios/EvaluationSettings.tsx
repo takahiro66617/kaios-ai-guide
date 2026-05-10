@@ -70,6 +70,8 @@ const CULTURAL_KEYS  = new Set(CULTURAL_OPTIONS.map(o => o.key));
 
 const EvaluationSettings = () => {
   const { evalAxes, refreshEvalAxes, refreshItems } = useKaios();
+  const { isAdmin } = useAuth();
+  const readOnly = !isAdmin;
 
   const [selectedStrategic, setSelectedStrategic] = useState<string>("");
   const [selectedCultural,  setSelectedCultural]  = useState<string>("");
