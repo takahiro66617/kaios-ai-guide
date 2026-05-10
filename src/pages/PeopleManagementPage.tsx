@@ -112,7 +112,8 @@ const PeopleManagementPage = () => {
         department: fDept,
         role_title: fRole.trim(),
         years_at_company: fYears,
-        is_admin: fIsAdmin,
+        role: fRoleType,
+        managed_departments: fRoleType === "manager" ? fManagedDepts : [],
         link_person_id: addMode === "link" ? linkTargetPerson?.id : undefined,
       },
     });
