@@ -43,7 +43,9 @@ const portalConfig: Record<LoginPortal, {
     homePath: "/admin/dashboard",
     theme: "manager",
     icon: Briefcase,
-    demo: [],
+    demo: [
+      { username: "tanaka", password: "manager1234", label: "マネージャー（田中）" },
+    ],
   },
   admin: {
     label: "Admin Console",

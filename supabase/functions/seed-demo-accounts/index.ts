@@ -16,12 +16,14 @@ interface DemoAccount {
   display_name: string;
   department: string;
   is_admin: boolean;
+  is_manager?: boolean;
 }
 
 const DEMO_ACCOUNTS: DemoAccount[] = [
   { username: "yamada", password: "kaios1234", display_name: "山田 太郎", department: "製造部", is_admin: false },
   { username: "sato",   password: "kaios1234", display_name: "佐藤 花子", department: "品質保証部", is_admin: false },
   { username: "admin",  password: "admin1234", display_name: "管理者",     department: "管理部",     is_admin: true  },
+  { username: "tanaka", password: "manager1234", display_name: "田中 課長", department: "製造部", is_admin: false, is_manager: true },
 ];
 
 function json(body: unknown, status = 200) {
@@ -70,11 +72,20 @@ Deno.serve(async (req) => {
         { onConflict: "user_id" },
       );
 
-      // Ensure roles: always member; admin if specified
+      // Ensure roles: always employee; admin/manager if specified
       await admin.from("user_roles").delete().eq("user_id", existingId);
-      const roles: Array<{ user_id: string; role: "admin" | "member" }> = [{ user_id: existingId, role: "member" }];
+      const roles: Array<{ user_id: string; role: "admin" | "manager" | "employee" }> = [{ user_id: existingId, role: "employee" }];
       if (acc.is_admin) roles.push({ user_id: existingId, role: "admin" });
+      if (acc.is_manager) roles.push({ user_id: existingId, role: "manager" });
       await admin.from("user_roles").insert(roles);
+
+      // Ensure manager_departments for managers
+      if (acc.is_manager) {
+        await admin.from("manager_departments").upsert(
+          { user_id: existingId, department: acc.department },
+          { onConflict: "user_id,department" },
+        );
+      }
 
       // Ensure people row linked to this auth user (members only — admin doesn't need a person)
       if (!acc.is_admin) {
@@ -88,7 +99,7 @@ Deno.serve(async (req) => {
             user_id: existingId,
             name: acc.display_name,
             department: acc.department,
-            role: "メンバー",
+            role: acc.is_manager ? "マネージャー" : "メンバー",
             avatar_initial: acc.display_name.slice(0, 1),
             years_at_company: 1,
             is_active: true,
