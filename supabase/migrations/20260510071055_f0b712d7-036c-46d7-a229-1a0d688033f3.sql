@@ -1,0 +1,1 @@
+ALTER TABLE public.kaizen_items ADD COLUMN IF NOT EXISTS per_axis_scores jsonb NOT NULL DEFAULT '[]'::jsonb;
