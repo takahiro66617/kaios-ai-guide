@@ -33,7 +33,9 @@ interface KaiosSidebarProps {
 const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
   const location = useLocation();
   const { profile: gprofile, levelTitle, levelProgress } = useGuestProfile();
-  const { profile: authProfile, isAdmin, signOut } = useAuth();
+  const { profile: authProfile, isAdmin, isManager, role, signOut } = useAuth();
+  const managerVisibleItems = isAdmin ? [...managerSharedMenu, ...adminOnlyMenu] : isManager ? managerSharedMenu : [];
+  const sectionLabel = isAdmin ? "管理機能" : isManager ? "マネージャー機能（閲覧）" : "";
 
   return (
     <aside className={`
