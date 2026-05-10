@@ -34,7 +34,7 @@ const LoginPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   if (!loading && user) {
-    return <Navigate to={isAdmin && from === "/" ? "/admin/dashboard" : from} replace />;
+    return <Navigate to={(isAdmin || isManager) && from === "/" ? "/admin/dashboard" : from} replace />;
   }
 
   const fillCredentials = (u: string, p: string) => {
