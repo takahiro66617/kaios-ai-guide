@@ -107,6 +107,25 @@ const AccountDetailModal = ({
     setStats(null);
   }, [person, profile?.username]);
 
+  // Load role + managed_departments when modal opens
+  useEffect(() => {
+    if (!open || !person?.userId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: roles }, { data: depts }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", person.userId!),
+        supabase.from("manager_departments").select("department").eq("user_id", person.userId!),
+      ]);
+      if (cancelled) return;
+      const set = new Set((roles ?? []).map((r: any) => r.role as string));
+      const r: "admin" | "manager" | "employee" =
+        set.has("admin") ? "admin" : set.has("manager") ? "manager" : "employee";
+      setCurrentRole(r);
+      setManagedDepts((depts ?? []).map((d: any) => d.department));
+    })();
+    return () => { cancelled = true; };
+  }, [open, person?.userId]);
+
   // Load gamification stats when modal opens
   useEffect(() => {
     if (!open || !person?.userId) return;
