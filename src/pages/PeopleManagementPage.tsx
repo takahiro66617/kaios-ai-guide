@@ -79,7 +79,7 @@ const PeopleManagementPage = () => {
 
   const resetAddForm = () => {
     setFName(""); setFDept(departments[0]?.name ?? ""); setFRole(""); setFYears(1);
-    setFUsername(""); setFPassword(""); setFIsAdmin(false);
+    setFUsername(""); setFPassword(""); setFRoleType("employee"); setFManagedDepts([]);
     setLinkTargetPerson(null); setAddMode("new");
   };
 
