@@ -8,21 +8,19 @@ const TYPE_COLORS = {
 };
 
 /**
- * 軸ごとの表示スコア（0〜100に正規化）。
- * 1) AIが評価方針に沿って付けた per_axis_scores が保存されていればそれを使う（0-100スケールに正規化）
- * 2) 無い場合のみ、総合点をウェイト比で按分するフォールバック
+ * 軸ごとの素点（0〜該当軸のウェイト点）を返す。
+ * 1) AIが評価方針に沿って付けた per_axis_scores があればそれを使う
+ * 2) 無い場合は総合点をウェイト比で按分するフォールバック
  */
-function calcAxisScore(item: KaizenItem, axis: EvalAxis, totalWeight: number): number {
+function calcAxisRawScore(item: KaizenItem, axis: EvalAxis, totalWeight: number): number {
+  const weight = axis.weight || 1;
   const saved = item.perAxisScores?.find(s => s.key === axis.key);
   if (saved && typeof saved.score === "number") {
-    // 保存値は「0〜該当軸のウェイト点」なので、0〜100スケールに直す
-    const weight = axis.weight || 1;
-    const normalized = Math.round((saved.score / weight) * 100);
-    return Math.max(0, Math.min(100, normalized));
+    return Math.max(0, Math.min(weight, Math.round(saved.score)));
   }
-  // フォールバック: 総合点 × ウェイト比
-  const fallback = Math.round(item.impactScore * (axis.weight / totalWeight) * (100 / Math.max(1, axis.weight)));
-  return Math.max(0, Math.min(100, fallback));
+  // フォールバック: 総合点(0-100) × ウェイト比 を該当軸の満点スケールに換算
+  const fallback = Math.round(item.impactScore * (weight / totalWeight));
+  return Math.max(0, Math.min(weight, fallback));
 }
 
 interface Props {
@@ -43,18 +41,22 @@ export const AxisScoreTags = ({ item, className = "" }: Props) => {
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {active.map(axis => {
-        const score = calcAxisScore(item, axis, total);
+        const score = calcAxisRawScore(item, axis, total);
+        const weight = axis.weight || 1;
+        const ratio = score / weight; // 0〜1
         const { lo, hi } = TYPE_COLORS[axis.axisType] ?? TYPE_COLORS.legacy;
         const tip = hasSaved
-          ? `${axis.description}\n（AIが評価方針に沿って採点）`
-          : `${axis.description}\n（参考値: 軸別採点が未保存のため、総合点から按分）`;
+          ? `${axis.description}\n（AIが評価方針に沿って採点｜満点 ${weight} 点）`
+          : `${axis.description}\n（参考値: 軸別採点が未保存のため、総合点から按分｜満点 ${weight} 点）`;
         return (
           <span
             key={axis.key}
             title={tip}
-            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium border ${score >= 70 ? hi : lo}`}
+            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium border ${ratio >= 0.7 ? hi : lo}`}
           >
-            {axis.name}<span className="font-bold ml-0.5">{score}</span>
+            {axis.name}
+            <span className="font-bold ml-0.5">{score}/{weight}</span>
+            <span className="ml-0.5">点</span>
           </span>
         );
       })}
