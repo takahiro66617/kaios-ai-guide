@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Save, AlertTriangle, History, Info, Sparkles, CheckCircle2, Loader2, Lock, ChevronDown, Wand2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKaios } from "@/contexts/KaiosContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
