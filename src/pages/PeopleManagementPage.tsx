@@ -52,7 +52,8 @@ const PeopleManagementPage = () => {
   const [fYears, setFYears] = useState(1);
   const [fUsername, setFUsername] = useState("");
   const [fPassword, setFPassword] = useState("");
-  const [fIsAdmin, setFIsAdmin] = useState(false);
+  const [fRoleType, setFRoleType] = useState<"admin" | "manager" | "employee">("employee");
+  const [fManagedDepts, setFManagedDepts] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
 
   // ----- Detail modal -----
