@@ -77,6 +77,12 @@ const AccountDetailModal = ({
   const [togglingAdmin, setTogglingAdmin] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
 
+  // Role / Managed depts (3-tier)
+  const [currentRole, setCurrentRole] = useState<"admin" | "manager" | "employee">("employee");
+  const [managedDepts, setManagedDepts] = useState<string[]>([]);
+  const [savingRole, setSavingRole] = useState(false);
+  const [savingDepts, setSavingDepts] = useState(false);
+
   // Delete
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
