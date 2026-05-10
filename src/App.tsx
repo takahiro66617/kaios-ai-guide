@@ -35,8 +35,10 @@ const App = () => (
                 <Toaster />
                 <Sonner />
                 <Routes>
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/admin/login" element={<LoginPage />} />
+                  <Route path="/login" element={<LoginPage portal="employee" />} />
+                  <Route path="/login/manager" element={<LoginPage portal="manager" />} />
+                  <Route path="/login/admin" element={<LoginPage portal="admin" />} />
+                  <Route path="/admin/login" element={<LoginPage portal="admin" />} />
                   <Route
                     element={
                       <ProtectedRoute>
