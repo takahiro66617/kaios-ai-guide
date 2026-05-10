@@ -155,7 +155,7 @@ interface KaiosContextType {
   updateEvalAxis: (id: string, updates: Partial<EvalAxis>) => Promise<void>;
   deleteEvalAxis: (id: string) => Promise<void>;
   updateAxisWeight: (id: string, weight: number) => void;
-  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus }) => Promise<KaizenItem | null>;
+  addKaizenItem: (item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus; impactScore?: number }) => Promise<KaizenItem | null>;
   updateKaizenStatus: (id: string, status: KaizenStatus) => Promise<void>;
   submitForApproval: (id: string) => Promise<void>;
   approveKaizen: (id: string) => Promise<void>;
@@ -305,7 +305,7 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const addKaizenItem = useCallback(async (
-    item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus }
+    item: Omit<KaizenItem, "id" | "createdAt" | "impactScore" | "status" | "executionStage" | "stageChangedAt" | "stageChangedBy" | "adminMemo" | "authorNote"> & { adoptedBy?: string[]; status?: KaizenStatus; impactScore?: number }
   ): Promise<KaizenItem | null> => {
     const adoptedBy = item.adoptedBy || [];
     const initialStatus: KaizenStatus = item.status || "下書き";
@@ -315,7 +315,10 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
       executionStage: "提案中", stageChangedAt: null, stageChangedBy: null,
       adminMemo: "", authorNote: "",
     };
-    registeredItem.impactScore = calculateImpactScore(registeredItem);
+    // AIが採点済みの場合はそれを優先（評価方針に基づくスコア）。なければ簡易ヒューリスティックで仮置き。
+    registeredItem.impactScore = typeof item.impactScore === "number"
+      ? Math.max(0, Math.min(100, Math.round(item.impactScore)))
+      : calculateImpactScore(registeredItem);
     try {
       const { data, error } = await supabase.from("kaizen_items").insert({
         title: item.title, problem: item.problem, cause: item.cause,
