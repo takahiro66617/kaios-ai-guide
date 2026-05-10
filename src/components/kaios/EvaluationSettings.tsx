@@ -405,7 +405,7 @@ const EvaluationSettings = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Select value={selectedStrategic} onValueChange={setSelectedStrategic}>
+                  <Select value={selectedStrategic} onValueChange={setSelectedStrategic} disabled={readOnly}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="戦略軸を選んでください" />
                     </SelectTrigger>
