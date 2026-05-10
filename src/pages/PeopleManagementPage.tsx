@@ -314,12 +314,43 @@ const PeopleManagementPage = () => {
                 <Input type="number" min={1} max={50} value={fYears} onChange={e => setFYears(Number(e.target.value))} className="mt-1" />
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div className="rounded-lg border border-border p-3 space-y-3">
               <div>
-                <p className="text-sm font-medium">管理者権限を付与</p>
-                <p className="text-xs text-muted-foreground">評価方針・提案者管理・管理者ダッシュボードへのアクセス</p>
+                <Label>権限ロール</Label>
+                <Select value={fRoleType} onValueChange={(v: any) => setFRoleType(v)}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">一般社員（Employee）— 提案・閲覧のみ</SelectItem>
+                    <SelectItem value="manager">マネージャー（Manager）— 管轄部署の閲覧+実行段階更新</SelectItem>
+                    <SelectItem value="admin">管理者（Admin）— 全権限・承認可</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch checked={fIsAdmin} onCheckedChange={setFIsAdmin} />
+              {fRoleType === "manager" && (
+                <div>
+                  <Label>管轄部署（複数選択可）</Label>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {departments.map(d => {
+                      const checked = fManagedDepts.includes(d.name);
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setFManagedDepts(prev => checked ? prev.filter(x => x !== d.name) : [...prev, d.name])}
+                          className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
+                            checked ? "bg-emerald-100 border-emerald-400 text-emerald-800" : "border-border hover:bg-muted"
+                          }`}
+                        >
+                          {d.name}
+                        </button>
+                      );
+                    })}
+                    {departments.length === 0 && (
+                      <p className="text-xs text-muted-foreground">部門マスタが未登録です。</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
