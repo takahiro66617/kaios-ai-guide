@@ -286,7 +286,7 @@ const EvaluationSettings = () => {
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5" disabled={isRecalculating || isSaving}>
+                  <Button variant="outline" size="sm" className="gap-1.5" disabled={readOnly || isRecalculating || isSaving}>
                     {isRecalculating
                       ? <Loader2 className="w-4 h-4 animate-spin" />
                       : <Wand2 className="w-4 h-4" />}
@@ -311,7 +311,7 @@ const EvaluationSettings = () => {
                 size="sm"
                 className="gap-1.5"
                 onClick={handleSave}
-                disabled={!hasChanges || isSaving || isRecalculating}
+                disabled={readOnly || !hasChanges || isSaving || isRecalculating}
               >
                 {isSaving
                   ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -320,6 +320,13 @@ const EvaluationSettings = () => {
               </Button>
             </div>
           </div>
+
+          {readOnly && (
+            <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              マネージャー権限では評価方針の<strong>閲覧のみ</strong>可能です。変更は管理者にご依頼ください。
+            </div>
+          )}
 
           {/* ── 配分バナー ── */}
           <div className="grid grid-cols-3 gap-3">
