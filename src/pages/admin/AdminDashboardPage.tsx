@@ -82,15 +82,21 @@ const AdminDashboardPage = () => {
       <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">管理者ダッシュボード</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              {isAdmin ? "管理者ダッシュボード" : "マネージャーダッシュボード"}
+            </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              役職別の意思決定ビュー（収益インパクト / 実行・案件化 / 展開・資産化）と承認レビュー枠を提供します。
+              {isAdmin
+                ? "役職別の意思決定ビュー（収益インパクト / 実行・案件化 / 展開・資産化）と承認レビュー枠を提供します。"
+                : `管轄部署「${managedDepartments.join("・") || "未設定"}」の改善案を確認・実行段階の更新ができます（承認は管理者のみ）。`}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setDeptModalOpen(true)}>
-              <Building2 className="w-4 h-4 mr-2" />部門マスタ管理
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setDeptModalOpen(true)}>
+                <Building2 className="w-4 h-4 mr-2" />部門マスタ管理
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={async () => { await signOut(); toast.success("ログアウトしました"); }}>
               <LogOut className="w-4 h-4 mr-2" />ログアウト
             </Button>
@@ -99,22 +105,26 @@ const AdminDashboardPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        <Tabs defaultValue={pendingItems.length > 0 ? "review" : "execution"}>
-          <TabsList className="grid grid-cols-4 w-full max-w-3xl">
-            <TabsTrigger value="review" className="gap-2">
-              <Inbox className="w-4 h-4" />申請レビュー
-              {pendingItems.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{pendingItems.length}</Badge>
-              )}
-            </TabsTrigger>
+        <Tabs defaultValue={isAdmin && pendingItems.length > 0 ? "review" : "execution"}>
+          <TabsList className={`grid w-full max-w-3xl ${isAdmin ? "grid-cols-4" : "grid-cols-3"}`}>
+            {isAdmin && (
+              <TabsTrigger value="review" className="gap-2">
+                <Inbox className="w-4 h-4" />申請レビュー
+                {pendingItems.length > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{pendingItems.length}</Badge>
+                )}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="impact" className="gap-2"><TrendingUp className="w-4 h-4" />収益インパクト</TabsTrigger>
             <TabsTrigger value="execution" className="gap-2"><Workflow className="w-4 h-4" />実行・案件化</TabsTrigger>
             <TabsTrigger value="scaling" className="gap-2"><Share2 className="w-4 h-4" />展開・資産化</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="review" className="mt-6">
-            <ReviewView items={pendingItems} onApprove={approveKaizen} onReject={rejectKaizen} onOpen={openDetail} getPersonById={getPersonById} />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="review" className="mt-6">
+              <ReviewView items={pendingItems} onApprove={approveKaizen} onReject={rejectKaizen} onOpen={openDetail} getPersonById={getPersonById} />
+            </TabsContent>
+          )}
 
           <TabsContent value="impact" className="mt-6">
             <ImpactCandidateView items={approvedItems} onOpen={openDetail} getPersonById={getPersonById} />
