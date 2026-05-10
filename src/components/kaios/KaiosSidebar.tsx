@@ -69,10 +69,10 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
           );
         })}
 
-        {isAdmin && (
+        {managerVisibleItems.length > 0 && (
           <>
-            <div className="px-2 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 border-t border-border mt-2">管理機能</div>
-            {adminMenu.map((item) => {
+            <div className="px-2 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 border-t border-border mt-2">{sectionLabel}</div>
+            {managerVisibleItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link key={item.title} to={item.path} onClick={onClose}
