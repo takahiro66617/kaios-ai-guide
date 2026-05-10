@@ -445,7 +445,7 @@ const EvaluationSettings = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Select value={selectedCultural} onValueChange={setSelectedCultural}>
+                  <Select value={selectedCultural} onValueChange={setSelectedCultural} disabled={readOnly}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="文化軸を選んでください" />
                     </SelectTrigger>
