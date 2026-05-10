@@ -41,18 +41,22 @@ export const AxisScoreTags = ({ item, className = "" }: Props) => {
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {active.map(axis => {
-        const score = calcAxisScore(item, axis, total);
+        const score = calcAxisRawScore(item, axis, total);
+        const weight = axis.weight || 1;
+        const ratio = score / weight; // 0〜1
         const { lo, hi } = TYPE_COLORS[axis.axisType] ?? TYPE_COLORS.legacy;
         const tip = hasSaved
-          ? `${axis.description}\n（AIが評価方針に沿って採点）`
-          : `${axis.description}\n（参考値: 軸別採点が未保存のため、総合点から按分）`;
+          ? `${axis.description}\n（AIが評価方針に沿って採点｜満点 ${weight} 点）`
+          : `${axis.description}\n（参考値: 軸別採点が未保存のため、総合点から按分｜満点 ${weight} 点）`;
         return (
           <span
             key={axis.key}
             title={tip}
-            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium border ${score >= 70 ? hi : lo}`}
+            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium border ${ratio >= 0.7 ? hi : lo}`}
           >
-            {axis.name}<span className="font-bold ml-0.5">{score}</span>
+            {axis.name}
+            <span className="font-bold ml-0.5">{score}/{weight}</span>
+            <span className="ml-0.5">点</span>
           </span>
         );
       })}
