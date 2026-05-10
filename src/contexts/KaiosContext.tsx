@@ -128,6 +128,7 @@ const mapRowToItem = (row: any): KaizenItem => ({
   stageChangedBy: row.stage_changed_by || null,
   adminMemo: row.admin_memo || "",
   authorNote: row.author_note || "",
+  perAxisScores: Array.isArray(row.per_axis_scores) ? row.per_axis_scores : [],
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
