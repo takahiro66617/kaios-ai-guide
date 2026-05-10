@@ -15,6 +15,8 @@ type Action =
   | { action: "reset_password"; user_id: string; new_password: string }
   | { action: "set_active"; user_id: string; is_active: boolean }
   | { action: "set_admin"; user_id: string; is_admin: boolean }
+  | { action: "set_role"; user_id: string; role: "admin" | "manager" | "employee" }
+  | { action: "set_managed_departments"; user_id: string; departments: string[] }
   | { action: "delete"; user_id: string };
 
 Deno.serve(async (req) => {
