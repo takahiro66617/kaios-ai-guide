@@ -225,17 +225,29 @@ const AccountDetailModal = ({
     await onChanged();
   };
 
-  const handleToggleAdmin = async () => {
-    if (!person.userId) return;
-    setTogglingAdmin(true);
-    const next = !isAdmin;
+  const handleSetRole = async (next: "admin" | "manager" | "employee") => {
+    if (!person.userId || next === currentRole) return;
+    setSavingRole(true);
     const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "set_admin", user_id: person.userId, is_admin: next },
+      body: { action: "set_role", user_id: person.userId, role: next },
     });
-    setTogglingAdmin(false);
+    setSavingRole(false);
     if (error || (data as any)?.error) { toast.error((data as any)?.error || "失敗"); return; }
-    toast.success(next ? "管理者権限を付与しました" : "管理者権限を解除しました");
+    setCurrentRole(next);
+    if (next !== "manager") setManagedDepts([]);
+    toast.success(`権限を「${next === "admin" ? "管理者" : next === "manager" ? "マネージャー" : "一般社員"}」に変更しました`);
     await onChanged();
+  };
+
+  const handleSaveManagedDepts = async () => {
+    if (!person.userId) return;
+    setSavingDepts(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      body: { action: "set_managed_departments", user_id: person.userId, departments: managedDepts },
+    });
+    setSavingDepts(false);
+    if (error || (data as any)?.error) { toast.error((data as any)?.error || "失敗"); return; }
+    toast.success("管轄部署を保存しました");
   };
 
   const handleToggleActive = async () => {
