@@ -100,6 +100,7 @@ const KaiosSidebar = ({ open, onClose }: KaiosSidebarProps) => {
             <div className="text-sm font-medium text-foreground truncate">
               {authProfile?.display_name || "メンバー"}
               {isAdmin && <span className="ml-1 text-xs text-amber-600">[管理者]</span>}
+              {isManager && <span className="ml-1 text-xs text-emerald-600">[マネージャー]</span>}
             </div>
             <div className="text-xs text-muted-foreground">Lv.{gprofile?.level || 1} {levelTitle} ・ {gprofile?.xp || 0}XP</div>
           </div>
