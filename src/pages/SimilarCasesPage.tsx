@@ -50,8 +50,11 @@ const SimilarCasesPage = () => {
   const [authorNoteDraft, setAuthorNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // 承認済みのみが正規ナレッジ
-  const approvedItems = useMemo(() => kaizenItems.filter(k => k.status === "承認済み"), [kaizenItems]);
+  // 過去改善は「下書き以外」すべてを対象にする（検索・一覧の両方）
+  const approvedItems = useMemo(
+    () => kaizenItems.filter(k => k.status !== "下書き"),
+    [kaizenItems]
+  );
   const pendingItems = useMemo(() => kaizenItems.filter(k => k.status === "申請中"), [kaizenItems]);
 
   // 自分が著者かどうか判定（meのpeople行）
@@ -152,8 +155,8 @@ const SimilarCasesPage = () => {
               <Search className="w-6 h-6 text-primary" />類似事例を探す
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              管理者が承認したナレッジから AI が類似事例を推薦します。
-              <span className="text-primary ml-1">承認済み {approvedItems.length}件</span>
+              過去のすべての改善事例から AI が類似案件を推薦します。
+              <span className="text-primary ml-1">過去改善 {approvedItems.length}件</span>
               {pendingItems.length > 0 && <span className="ml-2 text-amber-600">／ 申請中 {pendingItems.length}件</span>}
             </p>
           </div>
@@ -276,7 +279,7 @@ const SimilarCasesPage = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between" data-tour="knowledge-base">
             <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />承認済みナレッジ
+              <FileText className="w-5 h-5 text-primary" />過去の改善事例
               <Badge variant="secondary" className="text-xs">{approvedItems.length}件</Badge>
             </h2>
           </div>
@@ -331,7 +334,7 @@ const SimilarCasesPage = () => {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">承認済みナレッジはまだありません。</p>
+              <p className="text-sm">過去の改善事例はまだありません。</p>
             </div>
           )}
         </div>

@@ -79,7 +79,6 @@ const EvaluationSettings = () => {
   const [savedStrategic,    setSavedStrategic]    = useState<string>("");
   const [savedCultural,     setSavedCultural]     = useState<string>("");
   const [isSaving,          setIsSaving]          = useState(false);
-  const [isRecalculating,   setIsRecalculating]   = useState(false);
   const [history,           setHistory]           = useState<any[]>([]);
 
   // evalAxes から現在の選択を読み込む
@@ -181,17 +180,7 @@ const EvaluationSettings = () => {
       await upsertCustomAxis(savedStrategic, selectedStrategic, STRATEGIC_OPTIONS, 4);
       await upsertCustomAxis(savedCultural,  selectedCultural,  CULTURAL_OPTIONS,  5);
 
-      // AI スコア再計算
-      const allAxes = [
-        ...FIXED_AXES.map(a => ({ key: a.key, name: a.name, description: a.description, weight: 20 })),
-        { ...STRATEGIC_OPTIONS.find(o => o.key === selectedStrategic)!, weight: 20 },
-        { ...CULTURAL_OPTIONS.find(o  => o.key === selectedCultural)!,  weight: 20 },
-      ];
-      const { data, error } = await supabase.functions.invoke("recalculate-impact", {
-        body: { axes: allAxes },
-      });
-      if (error) { toast.error("AIスコア再計算に失敗しました"); return; }
-
+      // 評価方針は今後の新規提案にのみ適用される（過去スコアは固定）。
       // 履歴保存
       await supabase.from("eval_settings_history").insert({
         speed: 20,
@@ -206,8 +195,8 @@ const EvaluationSettings = () => {
       setSavedCultural(selectedCultural);
       await Promise.all([refreshItems(), refreshEvalAxes(), fetchHistory()]);
 
-      toast.success("評価軸を保存し、AIでスコアを再計算しました", {
-        description: `${(data as any)?.updated ?? 0}件の改善案のスコアが更新されました`,
+      toast.success("評価方針を保存しました", {
+        description: "今後の新規提案からこの方針で採点されます（過去スコアは変更されません）",
       });
     } catch (e) {
       toast.error("保存に失敗しました");
@@ -216,30 +205,8 @@ const EvaluationSettings = () => {
     }
   };
 
-  const handleRecalculate = async () => {
-    setIsRecalculating(true);
-    const tid = toast.loading("AIが全件のインパクトを再計算中...");
-    try {
-      const s = STRATEGIC_OPTIONS.find(o => o.key === savedStrategic);
-      const c = CULTURAL_OPTIONS.find(o => o.key === savedCultural);
-      const axes = [
-        ...FIXED_AXES.map(a => ({ key: a.key, name: a.name, description: a.description, weight: 20 })),
-        ...(s ? [{ ...s, weight: 20 }] : []),
-        ...(c ? [{ ...c, weight: 20 }] : []),
-      ];
-      const { data, error } = await supabase.functions.invoke("recalculate-impact", { body: { axes } });
-      if (error) throw error;
-      await refreshItems();
-      toast.success("全件のAIスコアを再計算しました", {
-        id: tid,
-        description: `${(data as any)?.updated ?? 0}件の改善案を更新しました`,
-      });
-    } catch (e) {
-      toast.error("再計算に失敗しました", { id: tid });
-    } finally {
-      setIsRecalculating(false);
-    }
-  };
+  // 全件AIスコア再計算は廃止（過去スコアは確定スナップショットとして固定）。
+
 
   const strategicLabel = STRATEGIC_OPTIONS.find(o => o.key === selectedStrategic)?.name ?? "未選択";
   const culturalLabel  = CULTURAL_OPTIONS.find(o  => o.key === selectedCultural)?.name  ?? "未選択";
@@ -284,34 +251,11 @@ const EvaluationSettings = () => {
                 </DialogContent>
               </Dialog>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5" disabled={readOnly || isRecalculating || isSaving}>
-                    {isRecalculating
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <Wand2 className="w-4 h-4" />}
-                    AIスコア再計算
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>全件のAIスコアを再計算しますか？</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      現在保存されている評価軸に基づいて、すべての改善案のスコアをAIが再計算します。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRecalculate}>再計算する</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
               <Button
                 size="sm"
                 className="gap-1.5"
                 onClick={handleSave}
-                disabled={readOnly || !hasChanges || isSaving || isRecalculating}
+                disabled={readOnly || !hasChanges || isSaving}
               >
                 {isSaving
                   ? <Loader2 className="w-4 h-4 animate-spin" />
