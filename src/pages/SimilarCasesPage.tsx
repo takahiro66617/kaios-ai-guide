@@ -155,8 +155,8 @@ const SimilarCasesPage = () => {
               <Search className="w-6 h-6 text-primary" />類似事例を探す
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              管理者が承認したナレッジから AI が類似事例を推薦します。
-              <span className="text-primary ml-1">承認済み {approvedItems.length}件</span>
+              過去のすべての改善事例から AI が類似案件を推薦します。
+              <span className="text-primary ml-1">過去改善 {approvedItems.length}件</span>
               {pendingItems.length > 0 && <span className="ml-2 text-amber-600">／ 申請中 {pendingItems.length}件</span>}
             </p>
           </div>
