@@ -50,8 +50,11 @@ const SimilarCasesPage = () => {
   const [authorNoteDraft, setAuthorNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // 承認済みのみが正規ナレッジ
-  const approvedItems = useMemo(() => kaizenItems.filter(k => k.status === "承認済み"), [kaizenItems]);
+  // 過去改善は「下書き以外」すべてを対象にする（検索・一覧の両方）
+  const approvedItems = useMemo(
+    () => kaizenItems.filter(k => k.status !== "下書き"),
+    [kaizenItems]
+  );
   const pendingItems = useMemo(() => kaizenItems.filter(k => k.status === "申請中"), [kaizenItems]);
 
   // 自分が著者かどうか判定（meのpeople行）
