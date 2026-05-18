@@ -181,17 +181,7 @@ const EvaluationSettings = () => {
       await upsertCustomAxis(savedStrategic, selectedStrategic, STRATEGIC_OPTIONS, 4);
       await upsertCustomAxis(savedCultural,  selectedCultural,  CULTURAL_OPTIONS,  5);
 
-      // AI スコア再計算
-      const allAxes = [
-        ...FIXED_AXES.map(a => ({ key: a.key, name: a.name, description: a.description, weight: 20 })),
-        { ...STRATEGIC_OPTIONS.find(o => o.key === selectedStrategic)!, weight: 20 },
-        { ...CULTURAL_OPTIONS.find(o  => o.key === selectedCultural)!,  weight: 20 },
-      ];
-      const { data, error } = await supabase.functions.invoke("recalculate-impact", {
-        body: { axes: allAxes },
-      });
-      if (error) { toast.error("AIスコア再計算に失敗しました"); return; }
-
+      // 評価方針は今後の新規提案にのみ適用される（過去スコアは固定）。
       // 履歴保存
       await supabase.from("eval_settings_history").insert({
         speed: 20,
@@ -206,8 +196,8 @@ const EvaluationSettings = () => {
       setSavedCultural(selectedCultural);
       await Promise.all([refreshItems(), refreshEvalAxes(), fetchHistory()]);
 
-      toast.success("評価軸を保存し、AIでスコアを再計算しました", {
-        description: `${(data as any)?.updated ?? 0}件の改善案のスコアが更新されました`,
+      toast.success("評価方針を保存しました", {
+        description: "今後の新規提案からこの方針で採点されます（過去スコアは変更されません）",
       });
     } catch (e) {
       toast.error("保存に失敗しました");
