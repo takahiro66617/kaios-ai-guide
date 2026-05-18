@@ -334,7 +334,7 @@ const SimilarCasesPage = () => {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">承認済みナレッジはまだありません。</p>
+              <p className="text-sm">過去の改善事例はまだありません。</p>
             </div>
           )}
         </div>
