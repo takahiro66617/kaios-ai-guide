@@ -79,7 +79,6 @@ const EvaluationSettings = () => {
   const [savedStrategic,    setSavedStrategic]    = useState<string>("");
   const [savedCultural,     setSavedCultural]     = useState<string>("");
   const [isSaving,          setIsSaving]          = useState(false);
-  const [isRecalculating,   setIsRecalculating]   = useState(false);
   const [history,           setHistory]           = useState<any[]>([]);
 
   // evalAxes から現在の選択を読み込む
