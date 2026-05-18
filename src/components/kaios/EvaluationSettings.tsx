@@ -205,30 +205,8 @@ const EvaluationSettings = () => {
     }
   };
 
-  const handleRecalculate = async () => {
-    setIsRecalculating(true);
-    const tid = toast.loading("AIが全件のインパクトを再計算中...");
-    try {
-      const s = STRATEGIC_OPTIONS.find(o => o.key === savedStrategic);
-      const c = CULTURAL_OPTIONS.find(o => o.key === savedCultural);
-      const axes = [
-        ...FIXED_AXES.map(a => ({ key: a.key, name: a.name, description: a.description, weight: 20 })),
-        ...(s ? [{ ...s, weight: 20 }] : []),
-        ...(c ? [{ ...c, weight: 20 }] : []),
-      ];
-      const { data, error } = await supabase.functions.invoke("recalculate-impact", { body: { axes } });
-      if (error) throw error;
-      await refreshItems();
-      toast.success("全件のAIスコアを再計算しました", {
-        id: tid,
-        description: `${(data as any)?.updated ?? 0}件の改善案を更新しました`,
-      });
-    } catch (e) {
-      toast.error("再計算に失敗しました", { id: tid });
-    } finally {
-      setIsRecalculating(false);
-    }
-  };
+  // 全件AIスコア再計算は廃止（過去スコアは確定スナップショットとして固定）。
+
 
   const strategicLabel = STRATEGIC_OPTIONS.find(o => o.key === selectedStrategic)?.name ?? "未選択";
   const culturalLabel  = CULTURAL_OPTIONS.find(o  => o.key === selectedCultural)?.name  ?? "未選択";
