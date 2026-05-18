@@ -23,8 +23,8 @@ import {
 
 const SIMILAR_TOUR_STEPS: TourStep[] = [
   { selector: '[data-tour="search-bar"]', title: "① 検索テーマを入力", description: "改善したいテーマや悩みを自由に入力します。", position: "bottom" },
-  { selector: '[data-tour="search-button"]', title: "② AI検索を実行", description: "AIが承認済みナレッジから類似事例を推薦します。", position: "bottom" },
-  { selector: '[data-tour="knowledge-base"]', title: "③ 承認済みナレッジ", description: "管理者が承認した正規ナレッジ一覧です。", position: "top" },
+  { selector: '[data-tour="search-button"]', title: "② AI検索を実行", description: "AIが過去の改善事例から類似案件を推薦します。", position: "bottom" },
+  { selector: '[data-tour="knowledge-base"]', title: "③ 過去の改善事例", description: "これまでに登録されたすべての改善事例（下書きを除く）の一覧です。", position: "top" },
 ];
 
 interface RankedItem extends KaizenItem {
