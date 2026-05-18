@@ -279,7 +279,7 @@ const SimilarCasesPage = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between" data-tour="knowledge-base">
             <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />承認済みナレッジ
+              <FileText className="w-5 h-5 text-primary" />過去の改善事例
               <Badge variant="secondary" className="text-xs">{approvedItems.length}件</Badge>
             </h2>
           </div>
