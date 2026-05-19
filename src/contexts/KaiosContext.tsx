@@ -337,6 +337,8 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         occurrence_place: item.occurrencePlace || "", frequency: item.frequency || "",
         numerical_evidence: item.numericalEvidence || "",
         per_axis_scores: perAxisScores,
+        usage_cost: item.usageCost ?? null,
+        estimated_annual_impact: item.estimatedAnnualImpact ?? null,
       } as any).select().single();
       if (error) { toast.error(error.message || "保存に失敗しました"); return null; }
       if (data) {
