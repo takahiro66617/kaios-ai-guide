@@ -76,17 +76,71 @@ const KaizenInputPage = () => {
     [user, people]
   );
 
+  const normalizeAmountInput = (value: string) => value
+    .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
+    .replace(/[．。]/g, ".")
+    .replace(/[，、]/g, ",")
+    .replace(/[−ー－]/g, "-")
+    .trim();
+
   const parseAmount = (s: string): number | null => {
-    if (!s.trim()) return null;
-    const n = Number(s.replace(/[,，\s]/g, ""));
+    const normalized = normalizeAmountInput(s);
+    if (!normalized) return null;
+
+    const compact = normalized.replace(/[,\s]/g, "").replace(/円|年間|年|\/年/g, "");
+    if (!compact) return null;
+
+    if (/[億万]/.test(compact)) {
+      let total = 0;
+      let matched = false;
+      const unitPattern = /([+-]?\d+(?:\.\d+)?)(億|万)?/g;
+      for (const match of compact.matchAll(unitPattern)) {
+        if (!match[1]) continue;
+        matched = true;
+        const amount = Number(match[1]);
+        const multiplier = match[2] === "億" ? 100000000 : match[2] === "万" ? 10000 : 1;
+        total += amount * multiplier;
+      }
+      return matched && Number.isFinite(total) ? total : null;
+    }
+
+    const n = Number(compact);
     return Number.isFinite(n) ? n : null;
   };
 
-  const isStep1Valid = () => {
-    const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect, usageCost, estimatedAnnualImpact } = step1Data;
-    return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim()
-      && parseAmount(usageCost) !== null && parseAmount(estimatedAnnualImpact) !== null;
-  };
+  const requiredFields = [
+    { key: "problem", label: "問題の内容" },
+    { key: "occurrencePlace", label: "発生場所" },
+    { key: "impact", label: "影響" },
+    { key: "frequency", label: "頻度" },
+    { key: "hypothesis", label: "原因仮説" },
+    { key: "direction", label: "改善案の方向" },
+    { key: "expectedEffect", label: "期待効果" },
+  ] as const;
+
+  const step1Validation = useMemo(() => {
+    const missingFields = requiredFields
+      .filter(({ key }) => !step1Data[key].trim())
+      .map(({ label }) => label);
+    const invalidAmountFields = [
+      { value: step1Data.usageCost, label: "使用コスト" },
+      { value: step1Data.estimatedAnnualImpact, label: "推定年間収支影響額" },
+    ].filter(({ value }) => parseAmount(value) === null).map(({ label }) => label);
+
+    return {
+      missingFields,
+      invalidAmountFields,
+      isValid: missingFields.length === 0 && invalidAmountFields.length === 0,
+    };
+  }, [step1Data]);
+
+  const isStep1Valid = () => step1Validation.isValid;
+
+  const disabledReasons = [
+    ...step1Validation.missingFields.map((label) => `${label}が未入力です`),
+    ...step1Validation.invalidAmountFields.map((label) => `${label}は数値・円・万円形式で入力してください`),
+    ...(!mePerson ? ["投稿者プロフィールが未登録です"] : []),
+  ];
 
   const handleGenerateDraft = async () => {
     if (!mePerson) { toast.error("あなたの提案者プロフィールが未登録です。管理者に依頼してください。"); return; }
@@ -334,14 +388,14 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                 </div>
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><Coins className="w-3.5 h-3.5 text-primary" />使用コスト（円／年） <span className="text-destructive">*</span></Label>
-                  <Input type="text" inputMode="numeric" placeholder="例: 100000（実施・維持にかかる年間コスト）"
+                  <Input type="text" inputMode="decimal" placeholder="例: 100000 / 10万円 / 0円"
                     value={step1Data.usageCost}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, usageCost: e.target.value }))} />
                   <p className="text-[11px] text-muted-foreground">この改善を実行・維持するのに年間いくらかかるか（人件費・ツール代等）。0でもOK。</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-sm"><Banknote className="w-3.5 h-3.5 text-primary" />推定年間収支影響額（円） <span className="text-destructive">*</span></Label>
-                  <Input type="text" inputMode="numeric" placeholder="例: 43000000（削減/増収はプラス、マイナスも可）"
+                  <Input type="text" inputMode="decimal" placeholder="例: 43000000 / 4300万円 / -50万円"
                     value={step1Data.estimatedAnnualImpact}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, estimatedAnnualImpact: e.target.value }))} />
                   <p className="text-[11px] text-muted-foreground">年間で会社の収支がどれだけ良くなるか（削減額・増収額）。この金額がスコアの基準になります。</p>
@@ -365,6 +419,15 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                   </div>
                 </div>
               </div>
+
+              {disabledReasons.length > 0 && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  <p className="font-bold">AIドラフトを生成できない理由</p>
+                  <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                    {disabledReasons.map((reason) => <li key={reason}>{reason}</li>)}
+                  </ul>
+                </div>
+              )}
 
               <div className="flex justify-end pt-2" data-tour="generate-button">
                 <Button onClick={handleGenerateDraft} disabled={!isStep1Valid() || isProcessing || !mePerson} className="gap-2">
