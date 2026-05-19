@@ -39,6 +39,8 @@ export interface KaizenItem {
   adminMemo: string;
   authorNote: string;
   perAxisScores: { key: string; score: number }[];
+  usageCost: number | null;
+  estimatedAnnualImpact: number | null;
 }
 
 export type KaizenStatus = "下書き" | "申請中" | "承認済み" | "差戻し";
@@ -129,6 +131,8 @@ const mapRowToItem = (row: any): KaizenItem => ({
   adminMemo: row.admin_memo || "",
   authorNote: row.author_note || "",
   perAxisScores: Array.isArray(row.per_axis_scores) ? row.per_axis_scores : [],
+  usageCost: row.usage_cost !== null && row.usage_cost !== undefined ? Number(row.usage_cost) : null,
+  estimatedAnnualImpact: row.estimated_annual_impact !== null && row.estimated_annual_impact !== undefined ? Number(row.estimated_annual_impact) : null,
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
@@ -333,6 +337,8 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
         occurrence_place: item.occurrencePlace || "", frequency: item.frequency || "",
         numerical_evidence: item.numericalEvidence || "",
         per_axis_scores: perAxisScores,
+        usage_cost: item.usageCost ?? null,
+        estimated_annual_impact: item.estimatedAnnualImpact ?? null,
       } as any).select().single();
       if (error) { toast.error(error.message || "保存に失敗しました"); return null; }
       if (data) {
@@ -393,6 +399,8 @@ export const KaiosProvider = ({ children }: { children: React.ReactNode }) => {
       if (updates.occurrencePlace !== undefined) dbUpdates.occurrence_place = updates.occurrencePlace;
       if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
       if (updates.numericalEvidence !== undefined) dbUpdates.numerical_evidence = updates.numericalEvidence;
+      if (updates.usageCost !== undefined) dbUpdates.usage_cost = updates.usageCost;
+      if (updates.estimatedAnnualImpact !== undefined) dbUpdates.estimated_annual_impact = updates.estimatedAnnualImpact;
       if (updates.adoptedBy !== undefined) dbUpdates.adopted_by = updates.adoptedBy;
       const { error } = await supabase.from("kaizen_items").update(dbUpdates).eq("id", id);
       if (error) { toast.error("更新に失敗しました"); return; }

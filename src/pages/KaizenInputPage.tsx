@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Sparkles, FileText, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Building2, Hash } from "lucide-react";
+import { Sparkles, FileText, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Building2, Hash, Coins, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,12 +37,15 @@ interface Step1Data {
   expectedEffect: string;
   relatedDepartments: string;
   numericalEvidence: string;
+  usageCost: string;
+  estimatedAnnualImpact: string;
 }
 
 const INITIAL_STEP1: Step1Data = {
   problem: "", occurrencePlace: "", impact: "", frequency: "",
   hypothesis: "", direction: "", expectedEffect: "",
   relatedDepartments: "", numericalEvidence: "",
+  usageCost: "", estimatedAnnualImpact: "",
 };
 
 const FREQUENCY_OPTIONS = ["毎日", "週に数回", "週1回", "月に数回", "月1回以下", "不定期"];
@@ -73,17 +76,26 @@ const KaizenInputPage = () => {
     [user, people]
   );
 
+  const parseAmount = (s: string): number | null => {
+    if (!s.trim()) return null;
+    const n = Number(s.replace(/[,，\s]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
+
   const isStep1Valid = () => {
-    const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect } = step1Data;
-    return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim();
+    const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect, usageCost, estimatedAnnualImpact } = step1Data;
+    return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim()
+      && parseAmount(usageCost) !== null && parseAmount(estimatedAnnualImpact) !== null;
   };
 
   const handleGenerateDraft = async () => {
     if (!mePerson) { toast.error("あなたの提案者プロフィールが未登録です。管理者に依頼してください。"); return; }
-    if (!isStep1Valid()) { toast.error("必須項目をすべて入力してください"); return; }
+    if (!isStep1Valid()) { toast.error("必須項目（金額欄含む）をすべて入力してください"); return; }
     setIsProcessing(true);
     setStep(2);
     try {
+      const usageCostNum = parseAmount(step1Data.usageCost);
+      const impactNum = parseAmount(step1Data.estimatedAnnualImpact);
       const inputText = `問題の内容: ${step1Data.problem}
 発生場所: ${step1Data.occurrencePlace}
 影響: ${step1Data.impact}
@@ -91,10 +103,18 @@ const KaizenInputPage = () => {
 原因仮説: ${step1Data.hypothesis}
 改善案の方向: ${step1Data.direction}
 期待効果: ${step1Data.expectedEffect}
+使用コスト(円/年): ${usageCostNum}
+推定年間収支影響額(円): ${impactNum}
 ${step1Data.relatedDepartments ? `関係部署: ${step1Data.relatedDepartments}` : ""}
 ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` : ""}`;
 
-      const { data, error } = await supabase.functions.invoke("structure-kaizen", { body: { text: inputText } });
+      const { data, error } = await supabase.functions.invoke("structure-kaizen", {
+        body: {
+          text: inputText,
+          usage_cost: usageCostNum,
+          estimated_annual_impact: impactNum,
+        },
+      });
       if (error) throw new Error(error.message || "AI処理に失敗しました");
       if (data?.error) throw new Error(data.error);
       if (data?.structured) {
@@ -138,6 +158,8 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       occurrencePlace: step1Data.occurrencePlace,
       frequency: step1Data.frequency,
       numericalEvidence: step1Data.numericalEvidence,
+      usageCost: parseAmount(step1Data.usageCost),
+      estimatedAnnualImpact: parseAmount(step1Data.estimatedAnnualImpact),
       status: asDraft ? "下書き" : "申請中",
       // AI が評価方針に基づいて算出したスコアをそのまま使う
       impactScore: typeof editedDraft.impact_score === "number" ? editedDraft.impact_score : undefined,
@@ -297,17 +319,32 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                     value={step1Data.hypothesis}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, hypothesis: e.target.value }))} />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-2">
                   <Label className="flex items-center gap-1.5 text-sm"><TrendingUp className="w-3.5 h-3.5 text-primary" />改善案の方向 <span className="text-destructive">*</span></Label>
-                  <Input placeholder="例: 社内Wikiに全資料を一元管理する"
+                  <Textarea placeholder="例: 社内Wikiに全資料を一元管理する／在庫管理を週次から日次に変更し、欠品ロスを削減する 等、問題点と打ち手を具体的に記述してください"
                     value={step1Data.direction}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))} />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))}
+                    rows={3} className="resize-none" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <Label className="flex items-center gap-1.5 text-sm"><Sparkles className="w-3.5 h-3.5 text-primary" />期待効果 <span className="text-destructive">*</span></Label>
                   <Input placeholder="例: 資料検索時間50%削減、提案精度向上"
                     value={step1Data.expectedEffect}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, expectedEffect: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><Coins className="w-3.5 h-3.5 text-primary" />使用コスト（円／年） <span className="text-destructive">*</span></Label>
+                  <Input type="text" inputMode="numeric" placeholder="例: 100000（実施・維持にかかる年間コスト）"
+                    value={step1Data.usageCost}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, usageCost: e.target.value }))} />
+                  <p className="text-[11px] text-muted-foreground">この改善を実行・維持するのに年間いくらかかるか（人件費・ツール代等）。0でもOK。</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><Banknote className="w-3.5 h-3.5 text-primary" />推定年間収支影響額（円） <span className="text-destructive">*</span></Label>
+                  <Input type="text" inputMode="numeric" placeholder="例: 43000000（削減/増収はプラス、マイナスも可）"
+                    value={step1Data.estimatedAnnualImpact}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, estimatedAnnualImpact: e.target.value }))} />
+                  <p className="text-[11px] text-muted-foreground">年間で会社の収支がどれだけ良くなるか（削減額・増収額）。この金額がスコアの基準になります。</p>
                 </div>
               </div>
 
