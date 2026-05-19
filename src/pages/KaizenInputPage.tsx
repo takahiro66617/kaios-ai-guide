@@ -319,17 +319,32 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
                     value={step1Data.hypothesis}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, hypothesis: e.target.value }))} />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-2">
                   <Label className="flex items-center gap-1.5 text-sm"><TrendingUp className="w-3.5 h-3.5 text-primary" />改善案の方向 <span className="text-destructive">*</span></Label>
-                  <Input placeholder="例: 社内Wikiに全資料を一元管理する"
+                  <Textarea placeholder="例: 社内Wikiに全資料を一元管理する／在庫管理を週次から日次に変更し、欠品ロスを削減する 等、問題点と打ち手を具体的に記述してください"
                     value={step1Data.direction}
-                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))} />
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, direction: e.target.value }))}
+                    rows={3} className="resize-none" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <Label className="flex items-center gap-1.5 text-sm"><Sparkles className="w-3.5 h-3.5 text-primary" />期待効果 <span className="text-destructive">*</span></Label>
                   <Input placeholder="例: 資料検索時間50%削減、提案精度向上"
                     value={step1Data.expectedEffect}
                     onChange={(e) => setStep1Data(prev => ({ ...prev, expectedEffect: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><Coins className="w-3.5 h-3.5 text-primary" />使用コスト（円／年） <span className="text-destructive">*</span></Label>
+                  <Input type="text" inputMode="numeric" placeholder="例: 100000（実施・維持にかかる年間コスト）"
+                    value={step1Data.usageCost}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, usageCost: e.target.value }))} />
+                  <p className="text-[11px] text-muted-foreground">この改善を実行・維持するのに年間いくらかかるか（人件費・ツール代等）。0でもOK。</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm"><Banknote className="w-3.5 h-3.5 text-primary" />推定年間収支影響額（円） <span className="text-destructive">*</span></Label>
+                  <Input type="text" inputMode="numeric" placeholder="例: 43000000（削減/増収はプラス、マイナスも可）"
+                    value={step1Data.estimatedAnnualImpact}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, estimatedAnnualImpact: e.target.value }))} />
+                  <p className="text-[11px] text-muted-foreground">年間で会社の収支がどれだけ良くなるか（削減額・増収額）。この金額がスコアの基準になります。</p>
                 </div>
               </div>
 
