@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import DepartmentMasterModal from "@/components/admin/DepartmentMasterModal";
 import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
+import { formatJpy } from "@/lib/utils";
 
 const STAGE_COLORS: Record<ExecutionStage, string> = {
   "提案中": "bg-blue-500/10 text-blue-700 border-blue-200",
