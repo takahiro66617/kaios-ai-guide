@@ -37,12 +37,15 @@ interface Step1Data {
   expectedEffect: string;
   relatedDepartments: string;
   numericalEvidence: string;
+  usageCost: string;
+  estimatedAnnualImpact: string;
 }
 
 const INITIAL_STEP1: Step1Data = {
   problem: "", occurrencePlace: "", impact: "", frequency: "",
   hypothesis: "", direction: "", expectedEffect: "",
   relatedDepartments: "", numericalEvidence: "",
+  usageCost: "", estimatedAnnualImpact: "",
 };
 
 const FREQUENCY_OPTIONS = ["毎日", "週に数回", "週1回", "月に数回", "月1回以下", "不定期"];
