@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
 import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
+import { formatJpy } from "@/lib/utils";
 import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
