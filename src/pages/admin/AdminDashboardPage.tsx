@@ -265,10 +265,14 @@ const ReviewView = ({
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onOpen(item)}>
                     <h3 className="font-medium text-foreground">{item.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{item.problem}</p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                       <span>{item.department}</span><span>•</span>
                       <span>{author?.name || item.authorNameSnapshot || "不明"}</span><span>•</span>
                       <span>インパクト {item.impactScore}</span><span>•</span>
+                      <span className={(item.estimatedAnnualImpact ?? 0) < 0 ? "text-destructive font-bold" : "text-primary font-bold"}>
+                        年間影響 {formatJpy(item.estimatedAnnualImpact)}
+                      </span><span>•</span>
+                      <span>コスト {formatJpy(item.usageCost)}</span><span>•</span>
                       <span>{daysSince(item.createdAt)}日前</span>
                     </div>
                     <AxisScoreTags item={item} className="mt-2" />
