@@ -298,6 +298,7 @@ export type Database = {
           created_at: string
           department: string
           effect: string
+          estimated_annual_impact: number | null
           execution_stage: string
           frequency: string
           id: string
@@ -314,6 +315,7 @@ export type Database = {
           tags: string[]
           title: string
           updated_at: string
+          usage_cost: number | null
         }
         Insert: {
           admin_memo?: string | null
@@ -326,6 +328,7 @@ export type Database = {
           created_at?: string
           department: string
           effect: string
+          estimated_annual_impact?: number | null
           execution_stage?: string
           frequency?: string
           id?: string
@@ -342,6 +345,7 @@ export type Database = {
           tags?: string[]
           title: string
           updated_at?: string
+          usage_cost?: number | null
         }
         Update: {
           admin_memo?: string | null
@@ -354,6 +358,7 @@ export type Database = {
           created_at?: string
           department?: string
           effect?: string
+          estimated_annual_impact?: number | null
           execution_stage?: string
           frequency?: string
           id?: string
@@ -370,6 +375,7 @@ export type Database = {
           tags?: string[]
           title?: string
           updated_at?: string
+          usage_cost?: number | null
         }
         Relationships: []
       }
