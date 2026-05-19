@@ -66,7 +66,7 @@ const KaizenInputPage = () => {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionData, setCompletionData] = useState<{ impactScore: number; xpGained: number; oldLevel: number; newLevel: number; completedMissions: { title: string; icon: string; xpReward: number }[] }>({ impactScore: 0, xpGained: 0, oldLevel: 1, newLevel: 1, completedMissions: [] });
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people } = useKaios();
+  const { addKaizenItem, kaizenItems, people, evalAxes } = useKaios();
   const { addXp, incrementSubmissions, checkAndCompleteMissions, profile } = useGuestProfile();
   const { user, profile: authProfile } = useAuth();
 
