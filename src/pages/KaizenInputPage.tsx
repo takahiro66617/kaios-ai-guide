@@ -158,6 +158,8 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
       occurrencePlace: step1Data.occurrencePlace,
       frequency: step1Data.frequency,
       numericalEvidence: step1Data.numericalEvidence,
+      usageCost: parseAmount(step1Data.usageCost),
+      estimatedAnnualImpact: parseAmount(step1Data.estimatedAnnualImpact),
       status: asDraft ? "下書き" : "申請中",
       // AI が評価方針に基づいて算出したスコアをそのまま使う
       impactScore: typeof editedDraft.impact_score === "number" ? editedDraft.impact_score : undefined,
