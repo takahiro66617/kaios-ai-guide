@@ -93,7 +93,7 @@ const KaizenInputPage = () => {
     if (/[億万]/.test(compact)) {
       let total = 0;
       let matched = false;
-      const unitPattern = /([+-]?\d+(?:\.\d+)?)(億|万)?/g;
+      const unitPattern = /([+-]?(?:\d+(?:\.\d+)?|\.\d+))(億|万)?/g;
       for (const match of compact.matchAll(unitPattern)) {
         if (!match[1]) continue;
         matched = true;
