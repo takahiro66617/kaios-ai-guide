@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Sparkles, FileText, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Building2, Hash } from "lucide-react";
+import { Sparkles, FileText, RefreshCw, Loader2, CheckCircle2, User, ChevronRight, Edit3, MapPin, BarChart2, Lightbulb, AlertTriangle, TrendingUp, Building2, Hash, Coins, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
