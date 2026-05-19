@@ -39,6 +39,8 @@ export interface KaizenItem {
   adminMemo: string;
   authorNote: string;
   perAxisScores: { key: string; score: number }[];
+  usageCost: number | null;
+  estimatedAnnualImpact: number | null;
 }
 
 export type KaizenStatus = "下書き" | "申請中" | "承認済み" | "差戻し";
