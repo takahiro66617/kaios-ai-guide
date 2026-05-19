@@ -377,6 +377,7 @@ const SimilarCasesPage = () => {
                     {formatJpy(detailItem.estimatedAnnualImpact)}
                   </p>
                 </div>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {detailItem.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>)}
               </div>
