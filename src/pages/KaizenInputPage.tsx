@@ -66,7 +66,7 @@ const KaizenInputPage = () => {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionData, setCompletionData] = useState<{ impactScore: number; xpGained: number; oldLevel: number; newLevel: number; completedMissions: { title: string; icon: string; xpReward: number }[] }>({ impactScore: 0, xpGained: 0, oldLevel: 1, newLevel: 1, completedMissions: [] });
   const navigate = useNavigate();
-  const { addKaizenItem, kaizenItems, people } = useKaios();
+  const { addKaizenItem, kaizenItems, people, evalAxes } = useKaios();
   const { addXp, incrementSubmissions, checkAndCompleteMissions, profile } = useGuestProfile();
   const { user, profile: authProfile } = useAuth();
 
@@ -93,7 +93,7 @@ const KaizenInputPage = () => {
     if (/[億万]/.test(compact)) {
       let total = 0;
       let matched = false;
-      const unitPattern = /([+-]?\d+(?:\.\d+)?)(億|万)?/g;
+      const unitPattern = /([+-]?(?:\d+(?:\.\d+)?|\.\d+))(億|万)?/g;
       for (const match of compact.matchAll(unitPattern)) {
         if (!match[1]) continue;
         matched = true;
@@ -457,6 +457,46 @@ ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` :
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* AI採点サマリ */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold text-foreground">AIインパクトスコア</span>
+                  </div>
+                  <span className="text-2xl font-bold text-primary">{editedDraft.impact_score ?? "-"}<span className="text-sm font-normal text-muted-foreground"> / 100点</span></span>
+                </div>
+                {editedDraft.score_reason && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">📝 {editedDraft.score_reason}</p>
+                )}
+                {Array.isArray(editedDraft.per_axis_scores) && editedDraft.per_axis_scores.length > 0 && evalAxes.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {editedDraft.per_axis_scores.map((s: { key: string; score: number }) => {
+                      const axis = evalAxes.find(a => a.key === s.key);
+                      if (!axis) return null;
+                      const w = axis.weight || 1;
+                      const ratio = (s.score || 0) / w;
+                      return (
+                        <span
+                          key={s.key}
+                          title={axis.description || axis.name}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${
+                            ratio >= 0.7
+                              ? "bg-primary/15 border-primary/40 text-primary"
+                              : "bg-muted border-border text-muted-foreground"
+                          }`}
+                        >
+                          {axis.name}<span className="font-bold">{Math.round(s.score)}/{w}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                  入力金額：使用コスト <strong>{step1Data.usageCost || "-"}</strong> / 推定年間収支影響額 <strong>{step1Data.estimatedAnnualImpact || "-"}</strong>
+                </p>
+              </div>
+
               <EditableField label="タイトル" value={editedDraft.title || ""} onChange={(v) => handleEditField("title", v)} />
               <EditableField label="問題" value={editedDraft.problem || ""} onChange={(v) => handleEditField("problem", v)} multiline />
               <EditableField label="原因" value={editedDraft.cause || ""} onChange={(v) => handleEditField("cause", v)} multiline />

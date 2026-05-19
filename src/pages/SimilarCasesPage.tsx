@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
 import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
+import { formatJpy } from "@/lib/utils";
 import { useGuestProfile } from "@/contexts/GuestProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import PersonDetailModal from "@/components/kaios/PersonDetailModal";
@@ -364,6 +365,18 @@ const SimilarCasesPage = () => {
                 {detailItem.occurrencePlace && <Field label="📍 発生場所" value={detailItem.occurrencePlace} />}
                 {detailItem.frequency && <Field label="🔄 頻度" value={detailItem.frequency} />}
                 {detailItem.numericalEvidence && <Field label="📊 数値根拠" value={detailItem.numericalEvidence} />}
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">使用コスト（年間）</p>
+                  <p className="font-bold text-foreground">{formatJpy(detailItem.usageCost)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">推定年間収支影響額</p>
+                  <p className={`font-bold ${(detailItem.estimatedAnnualImpact ?? 0) < 0 ? "text-destructive" : "text-primary"}`}>
+                    {formatJpy(detailItem.estimatedAnnualImpact)}
+                  </p>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {detailItem.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>)}
