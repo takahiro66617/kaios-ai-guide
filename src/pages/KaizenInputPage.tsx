@@ -76,9 +76,16 @@ const KaizenInputPage = () => {
     [user, people]
   );
 
+  const parseAmount = (s: string): number | null => {
+    if (!s.trim()) return null;
+    const n = Number(s.replace(/[,，\s]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
+
   const isStep1Valid = () => {
-    const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect } = step1Data;
-    return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim();
+    const { problem, occurrencePlace, impact, frequency, hypothesis, direction, expectedEffect, usageCost, estimatedAnnualImpact } = step1Data;
+    return problem.trim() && occurrencePlace.trim() && impact.trim() && frequency.trim() && hypothesis.trim() && direction.trim() && expectedEffect.trim()
+      && parseAmount(usageCost) !== null && parseAmount(estimatedAnnualImpact) !== null;
   };
 
   const handleGenerateDraft = async () => {
