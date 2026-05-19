@@ -13,7 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const body = await req.json();
+    const { text } = body;
+    const usageCost: number | null = typeof body.usage_cost === "number" ? body.usage_cost : null;
+    const estimatedImpact: number | null = typeof body.estimated_annual_impact === "number" ? body.estimated_annual_impact : null;
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -21,6 +24,18 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // 推定年間収支影響額（人が入力した絶対基準）→ スコア帯
+    const bandFromAmount = (amount: number | null): { min: number; max: number; label: string } | null => {
+      if (amount === null || !Number.isFinite(amount)) return null;
+      const abs = Math.abs(amount);
+      if (abs < 100_000)       return { min: 5,  max: 20,  label: "個人作業効率化レベル" };
+      if (abs < 1_000_000)     return { min: 20, max: 40,  label: "1チーム内小改善レベル" };
+      if (abs < 10_000_000)    return { min: 40, max: 65,  label: "1部署規模の業務改革レベル" };
+      if (abs < 50_000_000)    return { min: 65, max: 85,  label: "複数部署横断の業務改革レベル" };
+      return                          { min: 85, max: 100, label: "全社・事業戦略級レベル" };
+    };
+    const band = bandFromAmount(estimatedImpact);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
