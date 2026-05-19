@@ -160,10 +160,23 @@ const AdminDashboardPage = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 mt-2">
+                <div className="rounded-lg border border-border bg-muted/30 p-3 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">使用コスト（年間）</p>
+                    <p className="font-bold text-foreground">{formatJpy(detailItem.usageCost)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">推定年間収支影響額</p>
+                    <p className={`font-bold ${(detailItem.estimatedAnnualImpact ?? 0) < 0 ? "text-destructive" : "text-primary"}`}>
+                      {formatJpy(detailItem.estimatedAnnualImpact)}
+                    </p>
+                  </div>
+                </div>
                 <Section label="課題">{detailItem.problem}</Section>
                 <Section label="原因">{detailItem.cause}</Section>
                 <Section label="解決策">{detailItem.solution}</Section>
                 <Section label="効果">{detailItem.effect}</Section>
+                <AxisScoreTags item={detailItem} />
                 {detailItem.authorNote && (
                   <Section label="提案者メモ">{detailItem.authorNote}</Section>
                 )}
