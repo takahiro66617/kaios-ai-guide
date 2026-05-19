@@ -90,10 +90,12 @@ const KaizenInputPage = () => {
 
   const handleGenerateDraft = async () => {
     if (!mePerson) { toast.error("あなたの提案者プロフィールが未登録です。管理者に依頼してください。"); return; }
-    if (!isStep1Valid()) { toast.error("必須項目をすべて入力してください"); return; }
+    if (!isStep1Valid()) { toast.error("必須項目（金額欄含む）をすべて入力してください"); return; }
     setIsProcessing(true);
     setStep(2);
     try {
+      const usageCostNum = parseAmount(step1Data.usageCost);
+      const impactNum = parseAmount(step1Data.estimatedAnnualImpact);
       const inputText = `問題の内容: ${step1Data.problem}
 発生場所: ${step1Data.occurrencePlace}
 影響: ${step1Data.impact}
@@ -101,10 +103,18 @@ const KaizenInputPage = () => {
 原因仮説: ${step1Data.hypothesis}
 改善案の方向: ${step1Data.direction}
 期待効果: ${step1Data.expectedEffect}
+使用コスト(円/年): ${usageCostNum}
+推定年間収支影響額(円): ${impactNum}
 ${step1Data.relatedDepartments ? `関係部署: ${step1Data.relatedDepartments}` : ""}
 ${step1Data.numericalEvidence ? `数値根拠: ${step1Data.numericalEvidence}` : ""}`;
 
-      const { data, error } = await supabase.functions.invoke("structure-kaizen", { body: { text: inputText } });
+      const { data, error } = await supabase.functions.invoke("structure-kaizen", {
+        body: {
+          text: inputText,
+          usage_cost: usageCostNum,
+          estimated_annual_impact: impactNum,
+        },
+      });
       if (error) throw new Error(error.message || "AI処理に失敗しました");
       if (data?.error) throw new Error(data.error);
       if (data?.structured) {
