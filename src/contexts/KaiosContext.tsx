@@ -131,6 +131,8 @@ const mapRowToItem = (row: any): KaizenItem => ({
   adminMemo: row.admin_memo || "",
   authorNote: row.author_note || "",
   perAxisScores: Array.isArray(row.per_axis_scores) ? row.per_axis_scores : [],
+  usageCost: row.usage_cost !== null && row.usage_cost !== undefined ? Number(row.usage_cost) : null,
+  estimatedAnnualImpact: row.estimated_annual_impact !== null && row.estimated_annual_impact !== undefined ? Number(row.estimated_annual_impact) : null,
 });
 
 const mapRowToAxis = (row: any): EvalAxis => ({
