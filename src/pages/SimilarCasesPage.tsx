@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
-import { Search, FileText, ArrowRight, Sparkles, Tag, Building2, User, Loader2, MessageSquare, Heart, Edit, Trash2, Save, ClipboardList } from "lucide-react";
+import { Search, FileText, ArrowRight, Tag, Building2, User, Heart, Edit, Trash2, Save, ClipboardList, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useKaios, type KaizenItem, type Person } from "@/contexts/KaiosContext";
 import { AxisScoreTags } from "@/components/kaios/AxisScoreTags";
 import { formatJpy } from "@/lib/utils";
@@ -21,27 +20,29 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 const SIMILAR_TOUR_STEPS: TourStep[] = [
-  { selector: '[data-tour="search-bar"]', title: "① 検索テーマを入力", description: "改善したいテーマや悩みを自由に入力します。", position: "bottom" },
-  { selector: '[data-tour="search-button"]', title: "② AI検索を実行", description: "AIが過去の改善事例から類似案件を推薦します。", position: "bottom" },
-  { selector: '[data-tour="knowledge-base"]', title: "③ 過去の改善事例", description: "これまでに登録されたすべての改善事例（下書きを除く）の一覧です。", position: "top" },
+  { selector: '[data-tour="search-bar"]', title: "① キーワード検索", description: "スペース区切りで複数語のAND検索ができます。タイトル/課題/原因/解決策/効果が対象です。", position: "bottom" },
+  { selector: '[data-tour="filters"]', title: "② 絞り込み", description: "部門・カテゴリ・タグ・並び替えで結果を絞れます。", position: "bottom" },
+  { selector: '[data-tour="knowledge-base"]', title: "③ 過去の改善事例", description: "条件に一致した改善事例の一覧です。詳細から内容を確認できます。", position: "top" },
 ];
 
-interface RankedItem extends KaizenItem {
-  similarity: number;
-  reason: string;
-}
+type SortKey = "newest" | "impact";
 
 const SimilarCasesPage = () => {
   const { kaizenItems, getPersonById, editKaizenItem, deleteKaizenItem, updateAuthorNote } = useKaios();
   const { toggleLike, getLikeInfo } = useGuestProfile();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin } = useAuth();
+
+  // フィルタ状態
   const [query, setQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<RankedItem[]>([]);
-  const [searchSummary, setSearchSummary] = useState("");
-  const [searched, setSearched] = useState(false);
+  const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
+  const [selectedCats, setSelectedCats] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
+
+  // モーダル
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<KaizenItem | null>(null);
@@ -51,59 +52,59 @@ const SimilarCasesPage = () => {
   const [authorNoteDraft, setAuthorNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // 過去改善は「下書き以外」すべてを対象にする（検索・一覧の両方）
+  // 対象データ
   const approvedItems = useMemo(
     () => kaizenItems.filter(k => k.status !== "下書き"),
     [kaizenItems]
   );
   const pendingItems = useMemo(() => kaizenItems.filter(k => k.status === "申請中"), [kaizenItems]);
 
-  // 自分が著者かどうか判定（meのpeople行）
-  const isOwner = (item: KaizenItem) => {
-    // user.id と people.user_id の関係を介して判定。簡略化のため authorNameSnapshot 等で代替不可なので null チェック含めスキップ。
-    // 編集導線は管理者のみ表示する仕様。
-    return false;
-  };
+  // 選択肢
+  const allDepts = useMemo(
+    () => Array.from(new Set(approvedItems.map(i => i.department).filter(Boolean))).sort(),
+    [approvedItems]
+  );
+  const allCats = useMemo(
+    () => Array.from(new Set(approvedItems.map(i => i.category).filter(Boolean))).sort(),
+    [approvedItems]
+  );
+  const allTags = useMemo(
+    () => Array.from(new Set(approvedItems.flatMap(i => i.tags || []))).sort(),
+    [approvedItems]
+  );
 
-  const handleSearch = async () => {
-    const q = query.trim();
-    if (!q) { toast.error("検索クエリを入力してください"); return; }
-    setIsSearching(true);
-    setResults([]);
-    setSearchSummary("");
-    setSearched(true);
-    try {
-      const itemsForAI = approvedItems.map(item => ({
-        title: item.title, problem: item.problem, solution: item.solution,
-        effect: item.effect, category: item.category, department: item.department, tags: item.tags,
-      }));
-      const { data, error } = await supabase.functions.invoke("search-similar", {
-        body: { query: q, items: itemsForAI },
-      });
-      if (error) throw new Error(error.message || "AI検索に失敗しました");
-      if (data?.error) throw new Error(data.error);
-      if (data?.rankings) {
-        const ranked: RankedItem[] = data.rankings
-          .filter((r: any) => r.similarity > 20 && r.index >= 0 && r.index < approvedItems.length)
-          .sort((a: any, b: any) => b.similarity - a.similarity)
-          .map((r: any) => ({ ...approvedItems[r.index], similarity: r.similarity, reason: r.reason }));
-        setResults(ranked);
-        setSearchSummary(data.summary || "");
-        toast.success(`AIが${ranked.length}件の類似事例を見つけました`);
+  // フィルタリング
+  const filtered = useMemo(() => {
+    const keywords = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let list = approvedItems.filter(item => {
+      if (selectedDepts.length && !selectedDepts.includes(item.department)) return false;
+      if (selectedCats.length && !selectedCats.includes(item.category)) return false;
+      if (selectedTags.length && !selectedTags.some(t => (item.tags || []).includes(t))) return false;
+      if (keywords.length) {
+        const hay = [
+          item.title, item.problem, item.cause, item.solution, item.effect,
+          ...(item.tags || []),
+        ].join("\n").toLowerCase();
+        // 全キーワードがどこかに含まれる（AND）
+        if (!keywords.every(k => hay.includes(k))) return false;
       }
-    } catch (e: any) {
-      console.error("Search error:", e);
-      toast.error(e.message || "AI検索中にエラーが発生しました");
-    } finally {
-      setIsSearching(false);
+      return true;
+    });
+    if (sortKey === "impact") {
+      list = [...list].sort((a, b) => (b.impactScore || 0) - (a.impactScore || 0));
+    } else {
+      list = [...list].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     }
-  };
+    return list;
+  }, [approvedItems, query, selectedDepts, selectedCats, selectedTags, sortKey]);
 
-  const getSimilarityColor = (v: number) => {
-    if (v >= 80) return "bg-kaios-success/10 text-kaios-success border-kaios-success/20";
-    if (v >= 60) return "bg-primary/10 text-primary border-primary/20";
-    return "bg-muted text-muted-foreground border-border";
+  const toggleIn = (arr: string[], v: string, setter: (a: string[]) => void) => {
+    setter(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
   };
+  const clearAllFilters = () => {
+    setQuery(""); setSelectedDepts([]); setSelectedCats([]); setSelectedTags([]); setSortKey("newest");
+  };
+  const hasAnyFilter = !!query.trim() || selectedDepts.length > 0 || selectedCats.length > 0 || selectedTags.length > 0;
 
   const handlePersonClick = (authorId: string) => {
     const person = getPersonById(authorId);
@@ -156,7 +157,7 @@ const SimilarCasesPage = () => {
               <Search className="w-6 h-6 text-primary" />類似事例を探す
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              過去のすべての改善事例から AI が類似案件を推薦します。
+              キーワードと絞り込みで過去の改善事例を検索できます。
               <span className="text-primary ml-1">過去改善 {approvedItems.length}件</span>
               {pendingItems.length > 0 && <span className="ml-2 text-amber-600">／ 申請中 {pendingItems.length}件</span>}
             </p>
@@ -164,81 +165,71 @@ const SimilarCasesPage = () => {
           <UITour steps={SIMILAR_TOUR_STEPS} tourKey="similar-cases" />
         </div>
 
+        {/* 検索＆フィルタ */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex gap-3">
-              <div className="relative flex-1" data-tour="search-bar">
-                <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-                <Input
-                  value={query} onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !isSearching && handleSearch()}
-                  placeholder="改善したいテーマや悩みを自由に入力" className="pl-9" disabled={isSearching}
-                />
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="relative" data-tour="search-bar">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="キーワードをスペース区切りで入力（例: 属人化 標準化）"
+                className="pl-9"
+              />
+            </div>
+
+            <div className="space-y-3" data-tour="filters">
+              {allDepts.length > 0 && (
+                <FilterRow label="部門" icon={<Building2 className="w-3.5 h-3.5" />}>
+                  {allDepts.map(d => (
+                    <ChipToggle key={d} active={selectedDepts.includes(d)} onClick={() => toggleIn(selectedDepts, d, setSelectedDepts)}>
+                      {d}
+                    </ChipToggle>
+                  ))}
+                </FilterRow>
+              )}
+              {allCats.length > 0 && (
+                <FilterRow label="カテゴリ" icon={<Tag className="w-3.5 h-3.5" />}>
+                  {allCats.map(c => (
+                    <ChipToggle key={c} active={selectedCats.includes(c)} onClick={() => toggleIn(selectedCats, c, setSelectedCats)}>
+                      {c}
+                    </ChipToggle>
+                  ))}
+                </FilterRow>
+              )}
+              {allTags.length > 0 && (
+                <FilterRow label="タグ" icon={<Tag className="w-3.5 h-3.5" />}>
+                  {allTags.map(t => (
+                    <ChipToggle key={t} active={selectedTags.includes(t)} onClick={() => toggleIn(selectedTags, t, setSelectedTags)}>
+                      #{t}
+                    </ChipToggle>
+                  ))}
+                </FilterRow>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">並び替え</span>
+                <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+                  <SelectTrigger className="h-8 w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">新着順</SelectItem>
+                    <SelectItem value="impact">インパクトスコア順</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="gap-1.5" data-tour="search-button">
-                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}AI検索
-              </Button>
+              {hasAnyFilter && (
+                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="gap-1 text-muted-foreground">
+                  <X className="w-3.5 h-3.5" />条件をクリア
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
-
-        {isSearching && (
-          <div className="text-center py-12">
-            <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">AI が類似事例を分析中...</p>
-          </div>
-        )}
-
-        {searched && !isSearching && (
-          <div className="space-y-4">
-            {searchSummary && (
-              <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <MessageSquare className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-bold text-primary mb-1">AIサマリー</p>
-                    <p className="text-sm text-foreground">{searchSummary}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            <p className="text-sm text-muted-foreground">{results.length}件の類似事例</p>
-            {results.map((item) => {
-              const author = getPersonById(item.authorId);
-              return (
-                <Card key={item.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-                          <Badge variant="outline" className={getSimilarityColor(item.similarity)}>類似度 {item.similarity}%</Badge>
-                          <Badge variant="secondary" className="text-xs">{item.status}</Badge>
-                        </div>
-                        <p className="text-sm text-primary/80 mb-1 italic">💡 {item.reason}</p>
-                        <p className="text-sm text-muted-foreground line-clamp-2">{item.solution}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Tag className="w-3 h-3" />{item.category}</span>
-                          <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{item.department}</span>
-                          <span>{item.createdAt}</span>
-                          {author && (
-                            <button onClick={() => handlePersonClick(item.authorId)} className="flex items-center gap-1 text-primary hover:underline">
-                              <User className="w-3 h-3" />{author.name}
-                            </button>
-                          )}
-                        </div>
-                        <AxisScoreTags item={item} className="mt-2" />
-                      </div>
-                      <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={() => openDetail(item)}>
-                        詳細を見る<ArrowRight className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
 
         {/* 未承認候補（申請中）— 管理者にのみ可視 */}
         {isAdmin && pendingItems.length > 0 && (
@@ -276,16 +267,17 @@ const SimilarCasesPage = () => {
           </div>
         )}
 
-        {/* 承認済みナレッジ一覧 */}
+        {/* 結果一覧 */}
         <div className="space-y-4">
           <div className="flex items-center justify-between" data-tour="knowledge-base">
             <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />過去の改善事例
-              <Badge variant="secondary" className="text-xs">{approvedItems.length}件</Badge>
+              <FileText className="w-5 h-5 text-primary" />
+              {hasAnyFilter ? "検索結果" : "過去の改善事例"}
+              <Badge variant="secondary" className="text-xs">{filtered.length}件</Badge>
             </h2>
           </div>
-          {approvedItems.length > 0 ? (
-            approvedItems.map((item) => {
+          {filtered.length > 0 ? (
+            filtered.map((item) => {
               const author = getPersonById(item.authorId);
               const likeInfo = getLikeInfo(item.id);
               return (
@@ -299,7 +291,7 @@ const SimilarCasesPage = () => {
                           <span className="text-xs font-bold text-primary">{item.impactScore}pt</span>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{item.solution}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1"><Tag className="w-3 h-3" />{item.category}</span>
                           <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{item.department}</span>
                           <span>{item.createdAt}</span>
@@ -335,7 +327,14 @@ const SimilarCasesPage = () => {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">過去の改善事例はまだありません。</p>
+              <p className="text-sm">
+                {hasAnyFilter ? "条件に一致する改善事例がありません。" : "過去の改善事例はまだありません。"}
+              </p>
+              {hasAnyFilter && (
+                <Button variant="link" size="sm" onClick={clearAllFilters} className="mt-2">
+                  条件をクリアする
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -394,7 +393,6 @@ const SimilarCasesPage = () => {
                 <Badge variant="outline">{detailItem.reproducibility}</Badge>
               </div>
 
-              {/* 提案者メモ（管理者と本人のみがDB上閲覧可、ここでは編集UIを管理者と推定本人に出す。簡略化のため誰でも閲覧、編集可能なのは管理者か） */}
               <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <label className="text-xs font-bold text-muted-foreground mb-1 flex items-center gap-1">
                   <FileText className="w-3 h-3" />提案者メモ
@@ -473,6 +471,29 @@ const SimilarCasesPage = () => {
     </main>
   );
 };
+
+const FilterRow = ({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) => (
+  <div className="flex items-start gap-3">
+    <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground w-16 shrink-0 pt-1">
+      {icon}{label}
+    </div>
+    <div className="flex flex-wrap gap-1.5 flex-1">{children}</div>
+  </div>
+);
+
+const ChipToggle = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+      active
+        ? "bg-primary text-primary-foreground border-primary"
+        : "bg-background text-foreground border-border hover:bg-muted"
+    }`}
+  >
+    {children}
+  </button>
+);
 
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-lg border border-border bg-muted/30 p-3">
